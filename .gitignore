@@ -10,6 +10,8 @@ build/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.intelliJPlatform
+.nev-session
 *.iws
 *.iml
 *.ipr
