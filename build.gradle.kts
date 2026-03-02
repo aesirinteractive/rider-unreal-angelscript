@@ -49,7 +49,7 @@ tasks {
     }
 
     named<ProcessResources>("processResources") {
-        from("D:/vscode-unreal-angelscript/language-server/dist/server.js") {
+        from("vscode-unreal-angelscript/language-server/dist/server.js") {
             into("lsp")
         }
     }

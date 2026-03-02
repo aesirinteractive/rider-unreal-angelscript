@@ -1,0 +1,4 @@
+[submodule "vscode-unreal-angelscript"]
+	path = vscode-unreal-angelscript
+	url = https://github.com/aesirinteractive/vscode-unreal-angelscript
+	branch = fix-invalid-module-names
