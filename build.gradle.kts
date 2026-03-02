@@ -47,6 +47,12 @@ tasks {
         sourceCompatibility = "21"
         targetCompatibility = "21"
     }
+
+    named<ProcessResources>("processResources") {
+        from("D:/vscode-unreal-angelscript/language-server/dist/server.js") {
+            into("lsp")
+        }
+    }
 }
 
 kotlin {

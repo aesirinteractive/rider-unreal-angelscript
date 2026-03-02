@@ -26,11 +26,18 @@
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="MyToolWindow" factoryClass="com.aesirinteractive.angelscript.MyToolWindowFactory"
-                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>
+<!--        <toolWindow id="MyToolWindow" factoryClass="com.aesirinteractive.angelscript.MyToolWindowFactory"-->
+<!--                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>-->
+        <applicationService serviceImplementation="com.aesirinteractive.angelscript.AngelscriptSettings"/>
+        <applicationConfigurable
+            parentId="tools"
+            instance="com.aesirinteractive.angelscript.AngelscriptSettingsConfigurable"
+            id="com.aesirinteractive.angelscript.settings"
+            displayName="AngelScript"/>
         <platform.lsp.serverSupportProvider implementation="com.aesirinteractive.angelscript.AngelscriptLspServerSupportProvider"/>
-        <configurationType implementation="com.aesirinteractive.angelscript.AngelscriptConfigurationType"/>
-        <programRunner implementation="com.aesirinteractive.angelscript.AngelscriptProgramRunner"/>
-        <xdebugger.breakpointType implementation="com.aesirinteractive.angelscript.AngelscriptBreakpointType"/>
+        <notificationGroup id="AngelScript LSP" displayType="BALLOON"/>
+<!--        <configurationType implementation="com.aesirinteractive.angelscript.AngelscriptConfigurationType"/>-->
+<!--        <programRunner implementation="com.aesirinteractive.angelscript.AngelscriptProgramRunner"/>-->
+<!--        <xdebugger.breakpointType implementation="com.aesirinteractive.angelscript.AngelscriptBreakpointType"/>-->
     </extensions>
 </idea-plugin>
