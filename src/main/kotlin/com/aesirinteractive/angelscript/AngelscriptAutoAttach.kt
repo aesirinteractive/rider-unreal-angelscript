@@ -2,14 +2,25 @@ package com.aesirinteractive.angelscript
 
 import com.intellij.execution.ExecutionListener
 import com.intellij.execution.ExecutionManager
-import com.intellij.execution.RunProfileStarter
 import com.intellij.execution.executors.DefaultDebugExecutor
-import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManagerListener
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.xdebugger.XDebuggerManager
+
+/**
+ * Startup activity that subscribes [AngelscriptAutoAttachListener] to the project's execution
+ * topic so it is notified when debug sessions start.
+ */
+class AngelscriptAutoAttachStartupActivity : ProjectActivity {
+    override suspend fun execute(project: Project) {
+        project.messageBus.connect().subscribe(
+            ExecutionManager.EXECUTION_TOPIC,
+            AngelscriptAutoAttachListener()
+        )
+    }
+}
 
 /**
  * Listens for any debug execution starting in the project. When a debug configuration is

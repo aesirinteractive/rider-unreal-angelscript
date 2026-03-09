@@ -18,12 +18,16 @@ import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.psi.PsiManager
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.ui.ColoredTextContainer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.xdebugger.DefaultDebugProcessHandler
@@ -54,6 +58,12 @@ import com.intellij.xdebugger.frame.presentation.XStringValuePresentation
 import com.intellij.xdebugger.impl.XSourcePositionImpl
 import com.intellij.xdebugger.impl.breakpoints.LineBreakpointState
 import com.intellij.xdebugger.impl.breakpoints.XLineBreakpointImpl
+import com.aesirinteractive.angelscript.psi.AngelscriptAssignmentExpr
+import com.aesirinteractive.angelscript.psi.AngelscriptExpr
+import com.aesirinteractive.angelscript.psi.AngelscriptFunctionDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptPostfixExpr
+import com.aesirinteractive.angelscript.psi.AngelscriptVariableAccessExpr
+import com.aesirinteractive.angelscript.psi.AngelscriptVariableDecl
 import org.jetbrains.annotations.Nls
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
@@ -276,15 +286,25 @@ class AngelscriptEvaluator(
     private val process: AngelscriptProcess
 ) : XDebuggerEvaluator() {
 
-    data class PendingEval(val callback: XEvaluationCallback, val expression: String)
+    sealed class PendingEvalEntry {
+        data class Interactive(val callback: XEvaluationCallback, val expression: String) : PendingEvalEntry()
+        data class Inline(val name: String, val onResult: (name: String, value: String) -> Unit) : PendingEvalEntry()
+    }
 
-    private val pendingEvals = ArrayDeque<PendingEval>()
+    private val pendingEvals = ArrayDeque<PendingEvalEntry>()
 
     override fun evaluate(expression: String, callback: XEvaluationCallback, expressionPosition: XSourcePosition?) {
         synchronized(pendingEvals) {
-            pendingEvals.addLast(PendingEval(callback, expression))
+            pendingEvals.addLast(PendingEvalEntry.Interactive(callback, expression))
         }
         process.client.sendRequestEvaluate(expression, frameIndex)
+    }
+
+    fun evaluateInline(name: String, onResult: (name: String, value: String) -> Unit) {
+        synchronized(pendingEvals) {
+            pendingEvals.addLast(PendingEvalEntry.Inline(name, onResult))
+        }
+        process.client.sendRequestEvaluate(name, frameIndex)
     }
 
     override fun getExpressionRangeAtOffset(project: com.intellij.openapi.project.Project, document: com.intellij.openapi.editor.Document, offset: Int, sideEffectsAllowed: Boolean): com.intellij.openapi.util.TextRange? {
@@ -311,15 +331,26 @@ class AngelscriptEvaluator(
 
     fun receiveResult(name: String, value: String, type: String, hasMembers: Boolean) {
         val pending = synchronized(pendingEvals) { pendingEvals.removeFirstOrNull() } ?: return
-        if (value.isEmpty()) {
-            ApplicationManager.getApplication().invokeLater {
-                pending.callback.errorOccurred("No result for '${pending.expression}'")
+        when (pending) {
+            is PendingEvalEntry.Interactive -> {
+                if (value.isEmpty()) {
+                    ApplicationManager.getApplication().invokeLater {
+                        pending.callback.errorOccurred("No result for '${pending.expression}'")
+                    }
+                } else {
+                    val evalPath = "$frameIndex:${pending.expression}"
+                    val result = AngelscriptNamedValue(name.ifEmpty { pending.expression }, value, type, hasMembers, evalPath, process)
+                    ApplicationManager.getApplication().invokeLater {
+                        pending.callback.evaluated(result)
+                    }
+                }
             }
-        } else {
-            val evalPath = "$frameIndex:${pending.expression}"
-            val result = AngelscriptNamedValue(name.ifEmpty { pending.expression }, value, type, hasMembers, evalPath, process)
-            ApplicationManager.getApplication().invokeLater {
-                pending.callback.evaluated(result)
+            is PendingEvalEntry.Inline -> {
+                if (value.isNotEmpty()) {
+                    ApplicationManager.getApplication().invokeLater {
+                        pending.onResult(pending.name, value)
+                    }
+                }
             }
         }
     }
@@ -410,6 +441,7 @@ class AngelscriptProcess(
         }
 
         client.onContinued = {
+            AngelscriptInlineValuesService.getInstance(session.project).clear()
             ApplicationManager.getApplication().invokeLater {
                 session.sessionResumed()
             }
@@ -425,6 +457,8 @@ class AngelscriptProcess(
             val context = AngelscriptSuspendContext(this, frames)
             // Top frame (index 0) is the active one for watch evaluation
             activeEvaluator = (context.activeExecutionStack?.topFrame as? AngelscriptStackFrame)?.evaluator
+            // Collect and evaluate inline variable values for the stopped location
+            collectInlineValues(frames)
             ApplicationManager.getApplication().invokeLater {
                 session.positionReached(context)
             }
@@ -538,8 +572,84 @@ class AngelscriptProcess(
     }
 
     override fun stop() {
+        AngelscriptInlineValuesService.getInstance(session.project).clear()
         client.sendStopDebugging()
         client.disconnect()
+    }
+
+    private fun collectInlineValues(frames: List<CallStackFrame>) {
+        val topFrame = frames.firstOrNull() ?: return
+        val sourcePath = topFrame.sourcePath
+        if (sourcePath.isEmpty() || sourcePath.startsWith("::")) return
+        val vFile = LocalFileSystem.getInstance().findFileByPath(sourcePath) ?: return
+        val stopLine = topFrame.line - 1  // 1-based Unreal → 0-based
+        val evaluator = activeEvaluator ?: return
+        val service = AngelscriptInlineValuesService.getInstance(session.project)
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            ReadAction.run<Throwable> {
+                val psiFile = PsiManager.getInstance(session.project).findFile(vFile) ?: return@run
+                val document = FileDocumentManager.getInstance().getDocument(vFile) ?: return@run
+
+                val stopOffset = document.getLineStartOffset(stopLine)
+                val stopElement = psiFile.findElementAt(stopOffset)
+                val enclosingFunction = PsiTreeUtil.getParentOfType(
+                    stopElement, AngelscriptFunctionDecl::class.java
+                ) ?: return@run
+
+                // name → 0-based line, deduplicated (first occurrence wins)
+                val lineByName = LinkedHashMap<String, Int>()
+
+                // 1. Parameters
+                for (param in enclosingFunction.parameterList.parameterDeclList) {
+                    val n = param.identifier.text
+                    val line = document.getLineNumber(param.identifier.textRange.startOffset)
+                    lineByName.putIfAbsent(n, line)
+                }
+
+                // 2. Local variable declarations in the function body
+                val body = enclosingFunction.compoundStatement ?: return@run
+                for (decl in PsiTreeUtil.findChildrenOfType(body, AngelscriptVariableDecl::class.java)) {
+                    // VariableItem is a private grammar rule — its IDENTIFIER tokens appear as
+                    // direct IDENTIFIER children of the VariableDecl ASTNode (not inside TypeRef,
+                    // which is a composite child and won't match the token-type filter).
+                    for (nameNode in decl.node.getChildren(AngelscriptTokenSets.IDENTIFIERS).map { it.psi }) {
+                        val n = nameNode.text
+                        val line = document.getLineNumber(nameNode.textRange.startOffset)
+                        lineByName.putIfAbsent(n, line)
+                    }
+                }
+
+                // 3. Assignments to simple variables (x = ... but not this.x = ...)
+                for (assign in PsiTreeUtil.findChildrenOfType(body, AngelscriptAssignmentExpr::class.java)) {
+                    val lhs = assign.exprList.firstOrNull() ?: continue
+                    val varAccess = findSimpleVariableAccess(lhs) ?: continue
+                    val n = varAccess.identifier.text
+                    val line = document.getLineNumber(varAccess.identifier.textRange.startOffset)
+                    lineByName.putIfAbsent(n, line)
+                }
+
+                // Evaluate each name and push the result to the service
+                for ((n, line) in lineByName) {
+                    evaluator.evaluateInline(n) { _, value ->
+                        service.putValue(vFile, line, "$n = $value")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun findSimpleVariableAccess(expr: AngelscriptExpr): AngelscriptVariableAccessExpr? {
+        val postfix = PsiTreeUtil.findChildOfType(expr, AngelscriptPostfixExpr::class.java) ?: return null
+        val hasComplexSuffix = postfix.node.getChildren(null).any { child ->
+            child.elementType == AngelscriptTypes.DOT ||
+            child.elementType == AngelscriptTypes.LBRACK ||
+            child.elementType == AngelscriptTypes.COLONCOLON ||
+            child.elementType == AngelscriptTypes.PLUSPLUS ||
+            child.elementType == AngelscriptTypes.MINUSMINUS
+        } || postfix.argListList.isNotEmpty()
+        if (hasComplexSuffix) return null
+        return PsiTreeUtil.findChildOfType(postfix, AngelscriptVariableAccessExpr::class.java)
     }
 }
 
