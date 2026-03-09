@@ -11,14 +11,14 @@ import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.aesirinteractive.angelscript.psi.*;
 
-public class AngelscriptCommentImpl extends ASTWrapperPsiElement implements AngelscriptComment {
+public class AngelscriptDefaultValueDeclImpl extends ASTWrapperPsiElement implements AngelscriptDefaultValueDecl {
 
-  public AngelscriptCommentImpl(@NotNull ASTNode node) {
+  public AngelscriptDefaultValueDeclImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull AngelscriptVisitor visitor) {
-    visitor.visitComment(this);
+    visitor.visitDefaultValueDecl(this);
   }
 
   @Override
@@ -29,8 +29,8 @@ public class AngelscriptCommentImpl extends ASTWrapperPsiElement implements Ange
 
   @Override
   @NotNull
-  public PsiElement getComment() {
-    return findNotNullChildByType(COMMENT);
+  public AngelscriptExpr getExpr() {
+    return findNotNullChildByClass(AngelscriptExpr.class);
   }
 
 }

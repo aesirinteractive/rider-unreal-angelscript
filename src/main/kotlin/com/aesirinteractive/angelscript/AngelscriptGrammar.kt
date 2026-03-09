@@ -41,7 +41,7 @@ interface AngelscriptTokenSets {
     companion object {
         val IDENTIFIERS: TokenSet = TokenSet.create(AngelscriptTypes.IDENTIFIER)
 
-        val COMMENTS: TokenSet = TokenSet.create(AngelscriptTypes.ARGUMENT)
+        val COMMENTS: TokenSet = TokenSet.create(AngelscriptTypes.COMMENT)
     }
 }
 internal class AngelscriptParserDefinition : ParserDefinition {

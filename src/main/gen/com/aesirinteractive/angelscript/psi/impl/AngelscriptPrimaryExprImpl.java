@@ -35,12 +35,6 @@ public class AngelscriptPrimaryExprImpl extends AngelscriptExprImpl implements A
 
   @Override
   @Nullable
-  public PsiElement getIdentifier() {
-    return findChildByType(IDENTIFIER);
-  }
-
-  @Override
-  @Nullable
   public PsiElement getNumberLiteral() {
     return findChildByType(NUMBER_LITERAL);
   }

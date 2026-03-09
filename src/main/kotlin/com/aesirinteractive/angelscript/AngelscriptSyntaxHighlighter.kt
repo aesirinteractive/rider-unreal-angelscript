@@ -1,4 +1,4 @@
-﻿package com.aesirinteractive.angelscript
+package com.aesirinteractive.angelscript
 
 import com.aesirinteractive.angelscript.AngelscriptSyntaxHighlighter.Companion.TOKEN_KEYS
 import com.intellij.icons.AllIcons
@@ -46,30 +46,78 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
         private val COMMENT_KEYS = arrayOf<TextAttributesKey>(COMMENT)
         private val EMPTY_KEYS = emptyArray<TextAttributesKey>()
 
+        // Lexer-level token highlighting (token types only — no PSI node types here)
         public val TOKEN_KEYS: Map<IElementType, Array<TextAttributesKey>> = mapOf(
-            // Lexer token types
             AngelscriptTypes.IDENTIFIER to uniqueKey("IDENTIFIER", DefaultLanguageHighlighterColors.IDENTIFIER),
             AngelscriptTypes.NUMBER_LITERAL to uniqueKey("NUMBER_LITERAL", DefaultLanguageHighlighterColors.NUMBER),
             AngelscriptTypes.STRING_LITERAL to uniqueKey("STRING_LITERAL", DefaultLanguageHighlighterColors.STRING),
             AngelscriptTypes.BOOL_LITERAL to uniqueKey("BOOL_LITERAL", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.NULLPTR_KW to uniqueKey("NULLPTR_KW", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.COMMENT to COMMENT_KEYS,
-            AngelscriptTypes.CONST to uniqueKey("CONST", DefaultLanguageHighlighterColors.KEYWORD),
+            // Control flow
             AngelscriptTypes.BREAK to uniqueKey("BREAK", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.CONTINUE to uniqueKey("CONTINUE", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.ELSE to uniqueKey("ELSE", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.ENUM to uniqueKey("ENUM", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.FOR to uniqueKey("FOR", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.IF to uniqueKey("IF", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.IN to uniqueKey("IN", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.OUT to uniqueKey("OUT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.AUTO to uniqueKey("AUTO", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.WHILE to uniqueKey("WHILE", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.PUBLIC to uniqueKey("PUBLIC", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.RETURN to uniqueKey("RETURN", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.WHILE to uniqueKey("WHILE", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.SWITCH_KW to uniqueKey("SWITCH_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.CASE_KW to uniqueKey("CASE_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.DEFAULT_KW to uniqueKey("DEFAULT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.DO_KW to uniqueKey("DO_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            // Declaration keywords
+            AngelscriptTypes.CONST to uniqueKey("CONST", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.ENUM to uniqueKey("ENUM", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.PUBLIC to uniqueKey("PUBLIC", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.STATIC to uniqueKey("STATIC", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.STRUCT to uniqueKey("STRUCT", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.CLASS to uniqueKey("CLASS", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.SUPER to uniqueKey("SUPER", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.TYPEDEF_KW to uniqueKey("TYPEDEF_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.EVENT_KW to uniqueKey("EVENT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.DELEGATE_KW to uniqueKey("DELEGATE_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.MIXIN_KW to uniqueKey("MIXIN_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.SHARED_KW to uniqueKey("SHARED_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.EXTERNAL_KW to uniqueKey("EXTERNAL_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.PRIVATE_KW to uniqueKey("PRIVATE_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.PROTECTED_KW to uniqueKey("PROTECTED_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.OVERRIDE_KW to uniqueKey("OVERRIDE_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.FINAL_KW to uniqueKey("FINAL_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.EXPLICIT_KW to uniqueKey("EXPLICIT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.PROPERTY_KW to uniqueKey("PROPERTY_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            // Type modifier keywords
+            AngelscriptTypes.IN to uniqueKey("IN", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.OUT to uniqueKey("OUT", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.INOUT_KW to uniqueKey("INOUT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.AUTO to uniqueKey("AUTO", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.AUTO_KW to uniqueKey("AUTO_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            // Primitive type keywords
+            AngelscriptTypes.VOID_KW to uniqueKey("VOID_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.INT_KW to uniqueKey("INT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.INT8_KW to uniqueKey("INT8_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.INT16_KW to uniqueKey("INT16_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.INT32_KW to uniqueKey("INT32_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.INT64_KW to uniqueKey("INT64_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.UINT_KW to uniqueKey("UINT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.UINT8_KW to uniqueKey("UINT8_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.UINT16_KW to uniqueKey("UINT16_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.UINT32_KW to uniqueKey("UINT32_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.UINT64_KW to uniqueKey("UINT64_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.FLOAT_KW to uniqueKey("FLOAT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.DOUBLE_KW to uniqueKey("DOUBLE_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.BOOL_KW to uniqueKey("BOOL_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            // Word operators
+            AngelscriptTypes.NOT_KW to uniqueKey("NOT_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.AND_KW to uniqueKey("AND_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.OR_KW to uniqueKey("OR_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.XOR_KW to uniqueKey("XOR_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.IS_KW to uniqueKey("IS_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            // Unreal metadata
+            AngelscriptTypes.UFUNCTION_KW to uniqueKey("UFUNCTION_KW", DefaultLanguageHighlighterColors.METADATA),
+            AngelscriptTypes.UPROPERTY_KW to uniqueKey("UPROPERTY_KW", DefaultLanguageHighlighterColors.METADATA),
+            AngelscriptTypes.UCLASS_KW to uniqueKey("UCLASS_KW", DefaultLanguageHighlighterColors.METADATA),
+            AngelscriptTypes.USTRUCT_KW to uniqueKey("USTRUCT_KW", DefaultLanguageHighlighterColors.METADATA),
             AngelscriptTypes.EQ to uniqueKey("EQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.EQEQ to uniqueKey("EQEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.EXCLEQ to uniqueKey("EXCLEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
@@ -84,14 +132,24 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
             AngelscriptTypes.XOR to uniqueKey("XOR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.LT to uniqueKey("LT", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.GT to uniqueKey("GT", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.GTEQ to uniqueKey("GTEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.LTEQ to uniqueKey("LTEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.LTLT to uniqueKey("LTLT", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.POWER to uniqueKey("POWER", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.ANDAND to uniqueKey("ANDAND", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.OROR to uniqueKey("OROR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.PLUSEQ to uniqueKey("PLUSEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.MINUSEQ to uniqueKey("MINUSEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.MULEQ to uniqueKey("MULEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.POWEREQ to uniqueKey("POWEREQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.DIVEQ to uniqueKey("DIVEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.REMEQ to uniqueKey("REMEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.ANDEQ to uniqueKey("ANDEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.OREQ to uniqueKey("OREQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.XOREQ to uniqueKey("XOREQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.LSHIFTEQ to uniqueKey("LSHIFTEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.RSHIFTEQ to uniqueKey("RSHIFTEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
+            AngelscriptTypes.RRSHIFTEQ to uniqueKey("RRSHIFTEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.COLON to uniqueKey("COLON", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.COLONCOLON to uniqueKey("COLONCOLON", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.DOT to uniqueKey("DOT", DefaultLanguageHighlighterColors.DOT),
@@ -103,62 +161,35 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
             AngelscriptTypes.RPAREN to uniqueKey("RPAREN", DefaultLanguageHighlighterColors.PARENTHESES),
             AngelscriptTypes.LBRACK to uniqueKey("LBRACK", DefaultLanguageHighlighterColors.BRACKETS),
             AngelscriptTypes.RBRACK to uniqueKey("RBRACK", DefaultLanguageHighlighterColors.BRACKETS),
+        )
 
-            // Parser node types
-            AngelscriptTypes.CLASS_DECL to uniqueKey("CLASS_DECL", DefaultLanguageHighlighterColors.CLASS_NAME),
-            AngelscriptTypes.STRUCT_DECL to uniqueKey("STRUCT_DECL", DefaultLanguageHighlighterColors.CLASS_NAME),
-            AngelscriptTypes.CLASS_DECL to uniqueKey("CLASS_DECL", DefaultLanguageHighlighterColors.CLASS_NAME),
-            AngelscriptTypes.FUNCTION_DECL to uniqueKey("FUNCTION_DECL", DefaultLanguageHighlighterColors.FUNCTION_DECLARATION),
-            AngelscriptTypes.PARAMETER_DECL to uniqueKey("PARAMETER_DECL", DefaultLanguageHighlighterColors.PARAMETER),
-            AngelscriptTypes.TYPE_REF to uniqueKey("TYPE_REF", DefaultLanguageHighlighterColors.CLASS_REFERENCE),
-            AngelscriptTypes.TYPE_ARGUMENT to uniqueKey("TYPE_ARGUMENT", DefaultLanguageHighlighterColors.CLASS_REFERENCE),
-            AngelscriptTypes.TYPEDEF_DECL to uniqueKey("TYPEDEF_DECL", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.VARIABLE_DECL to uniqueKey("VARIABLE_DECL", DefaultLanguageHighlighterColors.LOCAL_VARIABLE),
-            AngelscriptTypes.VARIABLE_ACCESS_EXPR to uniqueKey("VARIABLE_ACCESS_EXPR", DefaultLanguageHighlighterColors.LOCAL_VARIABLE),
-            AngelscriptTypes.U_CLASS_DECL to uniqueKey("U_CLASS_DECL", DefaultLanguageHighlighterColors.METADATA),
-            AngelscriptTypes.U_STRUCT_DECL to uniqueKey("U_STRUCT_DECL", DefaultLanguageHighlighterColors.METADATA),
-            AngelscriptTypes.U_FUNCTION_DECL to uniqueKey("U_FUNCTION_DECL", DefaultLanguageHighlighterColors.METADATA),
-            AngelscriptTypes.U_PROPERTY_DECL to uniqueKey("U_PROPERTY_DECL", DefaultLanguageHighlighterColors.METADATA),
-            AngelscriptTypes.COMPOUND_STATEMENT to uniqueKey("COMPOUND_STATEMENT", DefaultLanguageHighlighterColors.BRACES),
-            AngelscriptTypes.STATEMENT to uniqueKey("STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.EXPRESSION_STATEMENT to uniqueKey("EXPRESSION_STATEMENT", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.IF_STATEMENT to uniqueKey("IF_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.ELSE_CLAUSE to uniqueKey("ELSE_CLAUSE", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.SWITCH_STATEMENT to uniqueKey("SWITCH_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.CASE_STATEMENT to uniqueKey("CASE_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.DO_STATEMENT to uniqueKey("DO_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.WHILE_STATEMENT to uniqueKey("WHILE_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.FOR_STATEMENT to uniqueKey("FOR_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.FOREACH_STATEMENT to uniqueKey("FOREACH_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.BREAK_STATEMENT to uniqueKey("BREAK_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.CONTINUE_STATEMENT to uniqueKey("CONTINUE_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.RETURN_STATEMENT to uniqueKey("RETURN_STATEMENT", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.ADD_EXPR to uniqueKey("ADD_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.ASSIGNMENT_EXPR to uniqueKey("ASSIGNMENT_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.BITWISE_AND_EXPR to uniqueKey("BITWISE_AND_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.CAST_EXPR to uniqueKey("CAST_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.COMMA_EXPR to uniqueKey("COMMA_EXPR", DefaultLanguageHighlighterColors.COMMA),
-            AngelscriptTypes.CONDITIONAL_EXPR to uniqueKey("CONDITIONAL_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.EQUALITY_EXPR to uniqueKey("EQUALITY_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.EXCLUSIVE_OR_EXPR to uniqueKey("EXCLUSIVE_OR_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.INCLUSIVE_OR_EXPR to uniqueKey("INCLUSIVE_OR_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.INIT_LIST_EXPR to uniqueKey("INIT_LIST_EXPR", DefaultLanguageHighlighterColors.BRACES),
-            AngelscriptTypes.LOGICAL_AND_EXPR to uniqueKey("LOGICAL_AND_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.LOGICAL_OR_EXPR to uniqueKey("LOGICAL_OR_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.MULTIPLY_EXPR to uniqueKey("MULTIPLY_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.PARENTHESIZED_EXPR to uniqueKey("PARENTHESIZED_EXPR", DefaultLanguageHighlighterColors.PARENTHESES),
-            AngelscriptTypes.POSTFIX_EXPR to uniqueKey("POSTFIX_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.PRIMARY_EXPR to uniqueKey("PRIMARY_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.RELATIONAL_EXPR to uniqueKey("RELATIONAL_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.SHIFT_EXPR to uniqueKey("SHIFT_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.STRING_CONCAT_EXPR to uniqueKey("STRING_CONCAT_EXPR", DefaultLanguageHighlighterColors.STRING),
-            AngelscriptTypes.UNARY_EXPR to uniqueKey("UNARY_EXPR", DefaultLanguageHighlighterColors.OPERATION_SIGN),
-            AngelscriptTypes.SCOPE_REF to uniqueKey("SCOPE_REF", DefaultLanguageHighlighterColors.CLASS_REFERENCE),
-            AngelscriptTypes.ARGUMENT to uniqueKey("ARGUMENT", DefaultLanguageHighlighterColors.PARAMETER),
-            AngelscriptTypes.ARG_LIST to uniqueKey("ARG_LIST", DefaultLanguageHighlighterColors.PARENTHESES),
-            AngelscriptTypes.PARAMETER_LIST to uniqueKey("PARAMETER_LIST", DefaultLanguageHighlighterColors.PARENTHESES),
-            AngelscriptTypes.MIXIN_DECL to uniqueKey("MIXIN_DECL", DefaultLanguageHighlighterColors.KEYWORD),
-            AngelscriptTypes.EVENT_DECL to uniqueKey("EVENT_DECL", DefaultLanguageHighlighterColors.KEYWORD)
+        // Semantic color keys — used by AngelscriptAnnotator, not by the lexer highlighter
+        val CLASS_NAME_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_CLASS_NAME", DefaultLanguageHighlighterColors.CLASS_NAME)
+        val FUNCTION_DECLARATION_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_FUNCTION_DECLARATION", DefaultLanguageHighlighterColors.FUNCTION_DECLARATION)
+        val FUNCTION_CALL_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_FUNCTION_CALL", DefaultLanguageHighlighterColors.FUNCTION_CALL)
+        val PARAMETER_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_PARAMETER", DefaultLanguageHighlighterColors.PARAMETER)
+        val INSTANCE_FIELD_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_INSTANCE_FIELD", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
+        val TYPE_REF_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_TYPE_REF", DefaultLanguageHighlighterColors.CLASS_REFERENCE)
+        val UNREAL_TYPE_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_UNREAL_TYPE", DefaultLanguageHighlighterColors.CLASS_REFERENCE)
+        val LOCAL_VARIABLE_KEY: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_LOCAL_VARIABLE", DefaultLanguageHighlighterColors.LOCAL_VARIABLE)
+
+        val SEMANTIC_KEYS: Map<String, TextAttributesKey> = mapOf(
+            "Class/struct name"       to CLASS_NAME_KEY,
+            "Function declaration"    to FUNCTION_DECLARATION_KEY,
+            "Function call"           to FUNCTION_CALL_KEY,
+            "Parameter"               to PARAMETER_KEY,
+            "Instance field"          to INSTANCE_FIELD_KEY,
+            "Type reference"          to TYPE_REF_KEY,
+            "Unreal type (U/A/F/E/T)" to UNREAL_TYPE_KEY,
+            "Local variable"          to LOCAL_VARIABLE_KEY,
         )
     }
 }
@@ -181,46 +212,35 @@ internal class AngelscriptColorSettingsPage : ColorSettingsPage {
 
     override fun getDemoText(): kotlin.String {
         return """
-delegate void FItemMoveCompleted(bool bCanceled);
-mixin void FItemMoveCompleted(bool bCanceled);
-event void FItemMoveCompleted(bool bCanceled);
-
-struct FInventoryViewModel
+<className>UInventoryViewModel</className> : <typeRef>UObject</typeRef>
 {
-	void bar(int a)
-	{
-	    if (true) {
-	        AActor a = nullptr;
-	        while (true) {
-	            for (int32 i = 0; i < 10; i++) {
-	            }
-	        }
-	    } 
-	}
-}
+    <typeRef>TArray</typeRef><<typeRef>FItem</typeRef>> <field>Items</field>;
 
-class UInventoryViewModel
-{
-	void bar(int a)
-	{
-	    if (true) {
-	        AActor a = nullptr;
-	        while (true) {
-	            for (int32 i = 0; i < 10; i++) {
-	            }
-	        }
-	    } 
-	}
+    void <funcDecl>GetItem</funcDecl>(<typeRef>int</typeRef> <param>index</param>)
+    {
+        <typeRef>FItem</typeRef> result = <funcCall>GetItems</funcCall>()[<param>index</param>];
+        result.<field>location</field>.<field>x</field> += 1;
+        
+        UObject result = <funcCall>GetItems</funcCall>()[<param>index</param>];
+        result.<field>location</field>.<field>x</field> += 1;
+    }
 }
         """.trimIndent()
     }
 
-    override fun getAdditionalHighlightingTagToDescriptorMap(): kotlin.collections.MutableMap<kotlin.String?, TextAttributesKey?>? {
-        return null
+    override fun getAdditionalHighlightingTagToDescriptorMap(): kotlin.collections.MutableMap<kotlin.String?, TextAttributesKey?> {
+        return mutableMapOf(
+            "className" to AngelscriptSyntaxHighlighter.CLASS_NAME_KEY,
+            "funcDecl"  to AngelscriptSyntaxHighlighter.FUNCTION_DECLARATION_KEY,
+            "funcCall"  to AngelscriptSyntaxHighlighter.FUNCTION_CALL_KEY,
+            "param"     to AngelscriptSyntaxHighlighter.PARAMETER_KEY,
+            "field"     to AngelscriptSyntaxHighlighter.INSTANCE_FIELD_KEY,
+            "typeRef"   to AngelscriptSyntaxHighlighter.TYPE_REF_KEY,
+        )
     }
 
-    override fun getAttributeDescriptors():  kotlin.Array<AttributesDescriptor?> {
-        return AngelscriptColorSettingsPage.Companion.DESCRIPTORS
+    override fun getAttributeDescriptors(): kotlin.Array<AttributesDescriptor?> {
+        return DESCRIPTORS
     }
 
     override fun getColorDescriptors(): kotlin.Array<ColorDescriptor?> {
@@ -233,11 +253,10 @@ class UInventoryViewModel
 
     companion object {
         private val DESCRIPTORS: kotlin.Array<AttributesDescriptor?> =
-            TOKEN_KEYS.entries.map {
-                var attributes: TextAttributesKey = it.value.stream().findFirst().get()
-                val attributesDescriptor = AttributesDescriptor(it.key.toString(), attributes)
-                attributesDescriptor
-            }.toTypedArray()
-
+            (TOKEN_KEYS.entries.map { (token, keys) ->
+                AttributesDescriptor(token.toString(), keys.first())
+            } + AngelscriptSyntaxHighlighter.SEMANTIC_KEYS.entries.map { (name, key) ->
+                AttributesDescriptor(name, key)
+            }).toTypedArray()
     }
 }

@@ -57,5 +57,9 @@
 
         <colorSettingsPage
                 implementation="com.aesirinteractive.angelscript.AngelscriptColorSettingsPage"/>
+
+        <annotator
+                language="AngelsScript"
+                implementationClass="com.aesirinteractive.angelscript.AngelscriptAnnotator"/>
     </extensions>
 </idea-plugin>

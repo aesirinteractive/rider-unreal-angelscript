@@ -5,15 +5,9 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface AngelscriptPrimaryExpr extends AngelscriptExpr {
+public interface AngelscriptDefaultValueDecl extends PsiElement {
 
-  @Nullable
-  PsiElement getBoolLiteral();
-
-  @Nullable
-  PsiElement getNumberLiteral();
-
-  @Nullable
-  PsiElement getStringLiteral();
+  @NotNull
+  AngelscriptExpr getExpr();
 
 }

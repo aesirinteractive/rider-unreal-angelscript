@@ -63,6 +63,10 @@ public class AngelscriptVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitDefaultValueDecl(@NotNull AngelscriptDefaultValueDecl o) {
+    visitPsiElement(o);
+  }
+
   public void visitDelegateDecl(@NotNull AngelscriptDelegateDecl o) {
     visitPsiElement(o);
   }

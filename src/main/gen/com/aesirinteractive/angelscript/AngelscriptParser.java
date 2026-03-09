@@ -45,12 +45,13 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   };
 
   /* ********************************************************** */
-  // 'private' | 'protected'
+  // PRIVATE_KW | PROTECTED_KW
   static boolean AccessSpecifier(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "AccessSpecifier")) return false;
+    if (!nextTokenIs(b, "", PRIVATE_KW, PROTECTED_KW)) return false;
     boolean r;
-    r = consumeToken(b, "private");
-    if (!r) r = consumeToken(b, "protected");
+    r = consumeToken(b, PRIVATE_KW);
+    if (!r) r = consumeToken(b, PROTECTED_KW);
     return r;
   }
 
@@ -212,20 +213,21 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // EQ | MULEQ | '**=' | DIVEQ | REMEQ | PLUSEQ | MINUSEQ | '<<=' | '>>=' | '>>>=' | ANDEQ | XOREQ | OREQ
+  // EQ | MULEQ | POWEREQ | DIVEQ | REMEQ | PLUSEQ | MINUSEQ
+  //                        | LSHIFTEQ | RSHIFTEQ | RRSHIFTEQ | ANDEQ | XOREQ | OREQ
   static boolean AssignmentOp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "AssignmentOp")) return false;
     boolean r;
     r = consumeToken(b, EQ);
     if (!r) r = consumeToken(b, MULEQ);
-    if (!r) r = consumeToken(b, "**=");
+    if (!r) r = consumeToken(b, POWEREQ);
     if (!r) r = consumeToken(b, DIVEQ);
     if (!r) r = consumeToken(b, REMEQ);
     if (!r) r = consumeToken(b, PLUSEQ);
     if (!r) r = consumeToken(b, MINUSEQ);
-    if (!r) r = consumeToken(b, "<<=");
-    if (!r) r = consumeToken(b, ">>=");
-    if (!r) r = consumeToken(b, ">>>=");
+    if (!r) r = consumeToken(b, LSHIFTEQ);
+    if (!r) r = consumeToken(b, RSHIFTEQ);
+    if (!r) r = consumeToken(b, RRSHIFTEQ);
     if (!r) r = consumeToken(b, ANDEQ);
     if (!r) r = consumeToken(b, XOREQ);
     if (!r) r = consumeToken(b, OREQ);
@@ -278,7 +280,105 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // BREAK SEMICOLON
+  // !(RBRACE | IF | WHILE | FOR | RETURN | BREAK | CONTINUE
+  //                                | SWITCH_KW | DO_KW | CASE_KW | DEFAULT_KW | LBRACE
+  //                                | CONST | VOID_KW
+  //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+  //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+  //                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
+  //                                | IDENTIFIER | COMMENT | <<eof>>)
+  static boolean BlockItem_recover(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "BlockItem_recover")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !BlockItem_recover_0(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // RBRACE | IF | WHILE | FOR | RETURN | BREAK | CONTINUE
+  //                                | SWITCH_KW | DO_KW | CASE_KW | DEFAULT_KW | LBRACE
+  //                                | CONST | VOID_KW
+  //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+  //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+  //                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
+  //                                | IDENTIFIER | COMMENT | <<eof>>
+  private static boolean BlockItem_recover_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "BlockItem_recover_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, RBRACE);
+    if (!r) r = consumeToken(b, IF);
+    if (!r) r = consumeToken(b, WHILE);
+    if (!r) r = consumeToken(b, FOR);
+    if (!r) r = consumeToken(b, RETURN);
+    if (!r) r = consumeToken(b, BREAK);
+    if (!r) r = consumeToken(b, CONTINUE);
+    if (!r) r = consumeToken(b, SWITCH_KW);
+    if (!r) r = consumeToken(b, DO_KW);
+    if (!r) r = consumeToken(b, CASE_KW);
+    if (!r) r = consumeToken(b, DEFAULT_KW);
+    if (!r) r = consumeToken(b, LBRACE);
+    if (!r) r = consumeToken(b, CONST);
+    if (!r) r = consumeToken(b, VOID_KW);
+    if (!r) r = consumeToken(b, INT_KW);
+    if (!r) r = consumeToken(b, INT8_KW);
+    if (!r) r = consumeToken(b, INT16_KW);
+    if (!r) r = consumeToken(b, INT32_KW);
+    if (!r) r = consumeToken(b, INT64_KW);
+    if (!r) r = consumeToken(b, UINT_KW);
+    if (!r) r = consumeToken(b, UINT8_KW);
+    if (!r) r = consumeToken(b, UINT16_KW);
+    if (!r) r = consumeToken(b, UINT32_KW);
+    if (!r) r = consumeToken(b, UINT64_KW);
+    if (!r) r = consumeToken(b, FLOAT_KW);
+    if (!r) r = consumeToken(b, DOUBLE_KW);
+    if (!r) r = consumeToken(b, BOOL_KW);
+    if (!r) r = consumeToken(b, AUTO_KW);
+    if (!r) r = consumeToken(b, AUTO);
+    if (!r) r = consumeToken(b, IDENTIFIER);
+    if (!r) r = consumeToken(b, COMMENT);
+    if (!r) r = eof(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // !(RBRACE | <<eof>>) BlockItem
+  static boolean BlockItem_with_recover(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "BlockItem_with_recover")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_);
+    r = BlockItem_with_recover_0(b, l + 1);
+    p = r; // pin = 1
+    r = r && BlockItem(b, l + 1);
+    exit_section_(b, l, m, r, p, AngelscriptParser::BlockItem_recover);
+    return r || p;
+  }
+
+  // !(RBRACE | <<eof>>)
+  private static boolean BlockItem_with_recover_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "BlockItem_with_recover_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !BlockItem_with_recover_0_0(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // RBRACE | <<eof>>
+  private static boolean BlockItem_with_recover_0_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "BlockItem_with_recover_0_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, RBRACE);
+    if (!r) r = eof(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // BREAK    SEMICOLON
   public static boolean BreakStatement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "BreakStatement")) return false;
     if (!nextTokenIs(b, BREAK)) return false;
@@ -310,9 +410,10 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // ( 'case' Expr | 'default' ) COLON (NonCaseStatement | VariableDecl)*
+  // ( CASE_KW Expr | DEFAULT_KW ) COLON (NonCaseStatement | VariableDecl)*
   public static boolean CaseStatement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "CaseStatement")) return false;
+    if (!nextTokenIs(b, "<case statement>", CASE_KW, DEFAULT_KW)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, CASE_STATEMENT, "<case statement>");
     r = CaseStatement_0(b, l + 1);
@@ -322,23 +423,23 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // 'case' Expr | 'default'
+  // CASE_KW Expr | DEFAULT_KW
   private static boolean CaseStatement_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "CaseStatement_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = CaseStatement_0_0(b, l + 1);
-    if (!r) r = consumeToken(b, "default");
+    if (!r) r = consumeToken(b, DEFAULT_KW);
     exit_section_(b, m, null, r);
     return r;
   }
 
-  // 'case' Expr
+  // CASE_KW Expr
   private static boolean CaseStatement_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "CaseStatement_0_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "case");
+    r = consumeToken(b, CASE_KW);
     r = r && Expr(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -404,9 +505,10 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // UClassDecl? CLASS identifier InheritanceList? LBRACE ClassMember* RBRACE SEMICOLON?
+  // UClassDecl? CLASS identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
   public static boolean ClassDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ClassDecl")) return false;
+    if (!nextTokenIs(b, "<class decl>", CLASS, UCLASS_KW)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, CLASS_DECL, "<class decl>");
     r = ClassDecl_0(b, l + 1);
@@ -435,12 +537,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ClassMember*
+  // ClassMember_with_recover*
   private static boolean ClassDecl_5(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ClassDecl_5")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!ClassMember(b, l + 1)) break;
+      if (!ClassMember_with_recover(b, l + 1)) break;
       if (!empty_element_parsed_guard_(b, "ClassDecl_5", c)) break;
     }
     return true;
@@ -454,13 +556,108 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FunctionDecl | VariableDecl | Comment
+  // FunctionDecl | DefaultValueDecl | VariableDecl | Comment
   static boolean ClassMember(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ClassMember")) return false;
     boolean r;
     r = FunctionDecl(b, l + 1);
+    if (!r) r = DefaultValueDecl(b, l + 1);
     if (!r) r = VariableDecl(b, l + 1);
     if (!r) r = Comment(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // !(RBRACE | UFUNCTION_KW | UPROPERTY_KW | PRIVATE_KW | PROTECTED_KW
+  //                                 | STATIC | CONST | SHARED_KW | EXTERNAL_KW | DEFAULT_KW | VOID_KW
+  //                                 | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+  //                                 | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+  //                                 | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
+  //                                 | TILDE | IDENTIFIER | COMMENT | <<eof>>)
+  static boolean ClassMember_recover(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ClassMember_recover")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !ClassMember_recover_0(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // RBRACE | UFUNCTION_KW | UPROPERTY_KW | PRIVATE_KW | PROTECTED_KW
+  //                                 | STATIC | CONST | SHARED_KW | EXTERNAL_KW | DEFAULT_KW | VOID_KW
+  //                                 | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+  //                                 | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+  //                                 | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
+  //                                 | TILDE | IDENTIFIER | COMMENT | <<eof>>
+  private static boolean ClassMember_recover_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ClassMember_recover_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, RBRACE);
+    if (!r) r = consumeToken(b, UFUNCTION_KW);
+    if (!r) r = consumeToken(b, UPROPERTY_KW);
+    if (!r) r = consumeToken(b, PRIVATE_KW);
+    if (!r) r = consumeToken(b, PROTECTED_KW);
+    if (!r) r = consumeToken(b, STATIC);
+    if (!r) r = consumeToken(b, CONST);
+    if (!r) r = consumeToken(b, SHARED_KW);
+    if (!r) r = consumeToken(b, EXTERNAL_KW);
+    if (!r) r = consumeToken(b, DEFAULT_KW);
+    if (!r) r = consumeToken(b, VOID_KW);
+    if (!r) r = consumeToken(b, INT_KW);
+    if (!r) r = consumeToken(b, INT8_KW);
+    if (!r) r = consumeToken(b, INT16_KW);
+    if (!r) r = consumeToken(b, INT32_KW);
+    if (!r) r = consumeToken(b, INT64_KW);
+    if (!r) r = consumeToken(b, UINT_KW);
+    if (!r) r = consumeToken(b, UINT8_KW);
+    if (!r) r = consumeToken(b, UINT16_KW);
+    if (!r) r = consumeToken(b, UINT32_KW);
+    if (!r) r = consumeToken(b, UINT64_KW);
+    if (!r) r = consumeToken(b, FLOAT_KW);
+    if (!r) r = consumeToken(b, DOUBLE_KW);
+    if (!r) r = consumeToken(b, BOOL_KW);
+    if (!r) r = consumeToken(b, AUTO_KW);
+    if (!r) r = consumeToken(b, AUTO);
+    if (!r) r = consumeToken(b, TILDE);
+    if (!r) r = consumeToken(b, IDENTIFIER);
+    if (!r) r = consumeToken(b, COMMENT);
+    if (!r) r = eof(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // !(RBRACE | <<eof>>) ClassMember
+  static boolean ClassMember_with_recover(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ClassMember_with_recover")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_);
+    r = ClassMember_with_recover_0(b, l + 1);
+    p = r; // pin = 1
+    r = r && ClassMember(b, l + 1);
+    exit_section_(b, l, m, r, p, AngelscriptParser::ClassMember_recover);
+    return r || p;
+  }
+
+  // !(RBRACE | <<eof>>)
+  private static boolean ClassMember_with_recover_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ClassMember_with_recover_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !ClassMember_with_recover_0_0(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // RBRACE | <<eof>>
+  private static boolean ClassMember_with_recover_0_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ClassMember_with_recover_0_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, RBRACE);
+    if (!r) r = eof(b, l + 1);
+    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -511,7 +708,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // LBRACE BlockItem* RBRACE
+  // LBRACE BlockItem_with_recover* RBRACE
   public static boolean CompoundStatement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "CompoundStatement")) return false;
     if (!nextTokenIs(b, LBRACE)) return false;
@@ -524,19 +721,19 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // BlockItem*
+  // BlockItem_with_recover*
   private static boolean CompoundStatement_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "CompoundStatement_1")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!BlockItem(b, l + 1)) break;
+      if (!BlockItem_with_recover(b, l + 1)) break;
       if (!empty_element_parsed_guard_(b, "CompoundStatement_1", c)) break;
     }
     return true;
   }
 
   /* ********************************************************** */
-  // LogicalOrExpr ('?' Expr? COLON Expr)?
+  // LogicalOrExpr (QUEST Expr? COLON Expr)?
   public static boolean ConditionalExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ConditionalExpr")) return false;
     boolean r;
@@ -547,19 +744,19 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ('?' Expr? COLON Expr)?
+  // (QUEST Expr? COLON Expr)?
   private static boolean ConditionalExpr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ConditionalExpr_1")) return false;
     ConditionalExpr_1_0(b, l + 1);
     return true;
   }
 
-  // '?' Expr? COLON Expr
+  // QUEST Expr? COLON Expr
   private static boolean ConditionalExpr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ConditionalExpr_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "?");
+    r = consumeToken(b, QUEST);
     r = r && ConditionalExpr_1_0_1(b, l + 1);
     r = r && consumeToken(b, COLON);
     r = r && Expr(b, l + 1);
@@ -587,14 +784,15 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // identifier | PrimitiveType | '?' | 'auto'
+  // PrimitiveType | QUEST | AUTO_KW | AUTO | identifier
   static boolean DataType(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "DataType")) return false;
     boolean r;
-    r = identifier(b, l + 1);
-    if (!r) r = PrimitiveType(b, l + 1);
-    if (!r) r = consumeToken(b, "?");
-    if (!r) r = consumeToken(b, "auto");
+    r = PrimitiveType(b, l + 1);
+    if (!r) r = consumeToken(b, QUEST);
+    if (!r) r = consumeToken(b, AUTO_KW);
+    if (!r) r = consumeToken(b, AUTO);
+    if (!r) r = identifier(b, l + 1);
     return r;
   }
 
@@ -643,36 +841,46 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'delegate' FunctionDecl
-  public static boolean DelegateDecl(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "DelegateDecl")) return false;
+  // DEFAULT_KW Expr SEMICOLON
+  public static boolean DefaultValueDecl(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "DefaultValueDecl")) return false;
+    if (!nextTokenIs(b, DEFAULT_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, DELEGATE_DECL, "<delegate decl>");
-    r = consumeToken(b, "delegate");
-    r = r && FunctionDecl(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    Marker m = enter_section_(b);
+    r = consumeToken(b, DEFAULT_KW);
+    r = r && Expr(b, l + 1);
+    r = r && consumeToken(b, SEMICOLON);
+    exit_section_(b, m, DEFAULT_VALUE_DECL, r);
     return r;
   }
 
   /* ********************************************************** */
-  // 'do' Statement WHILE ParenthesizedExpr SEMICOLON
+  // DELEGATE_KW FunctionDecl
+  public static boolean DelegateDecl(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "DelegateDecl")) return false;
+    if (!nextTokenIs(b, DELEGATE_KW)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, DELEGATE_KW);
+    r = r && FunctionDecl(b, l + 1);
+    exit_section_(b, m, DELEGATE_DECL, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // DO_KW Statement WHILE ParenthesizedExpr SEMICOLON
   public static boolean DoStatement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "DoStatement")) return false;
+    if (!nextTokenIs(b, DO_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, DO_STATEMENT, "<do statement>");
-    r = consumeToken(b, "do");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, DO_KW);
     r = r && Statement(b, l + 1);
     r = r && consumeToken(b, WHILE);
     r = r && ParenthesizedExpr(b, l + 1);
     r = r && consumeToken(b, SEMICOLON);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, DO_STATEMENT, r);
     return r;
-  }
-
-  /* ********************************************************** */
-  // STRING_LITERAL
-  static boolean DoubleQuotedString(PsiBuilder b, int l) {
-    return consumeToken(b, STRING_LITERAL);
   }
 
   /* ********************************************************** */
@@ -732,19 +940,20 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'event' FunctionDecl
+  // EVENT_KW    FunctionDecl
   public static boolean EventDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "EventDecl")) return false;
+    if (!nextTokenIs(b, EVENT_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, EVENT_DECL, "<event decl>");
-    r = consumeToken(b, "event");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, EVENT_KW);
     r = r && FunctionDecl(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, EVENT_DECL, r);
     return r;
   }
 
   /* ********************************************************** */
-  // BitwiseAndExpr ((XOR | 'xor') BitwiseAndExpr)*
+  // BitwiseAndExpr ((XOR | XOR_KW) BitwiseAndExpr)*
   public static boolean ExclusiveOrExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ExclusiveOrExpr")) return false;
     boolean r;
@@ -755,7 +964,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ((XOR | 'xor') BitwiseAndExpr)*
+  // ((XOR | XOR_KW) BitwiseAndExpr)*
   private static boolean ExclusiveOrExpr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ExclusiveOrExpr_1")) return false;
     while (true) {
@@ -766,7 +975,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // (XOR | 'xor') BitwiseAndExpr
+  // (XOR | XOR_KW) BitwiseAndExpr
   private static boolean ExclusiveOrExpr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ExclusiveOrExpr_1_0")) return false;
     boolean r;
@@ -777,12 +986,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // XOR | 'xor'
+  // XOR | XOR_KW
   private static boolean ExclusiveOrExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ExclusiveOrExpr_1_0_0")) return false;
     boolean r;
     r = consumeToken(b, XOR);
-    if (!r) r = consumeToken(b, "xor");
+    if (!r) r = consumeToken(b, XOR_KW);
     return r;
   }
 
@@ -924,14 +1133,14 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'override' | 'final' | 'explicit' | 'property'
+  // OVERRIDE_KW | FINAL_KW | EXPLICIT_KW | PROPERTY_KW
   static boolean FuncAttr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "FuncAttr")) return false;
     boolean r;
-    r = consumeToken(b, "override");
-    if (!r) r = consumeToken(b, "final");
-    if (!r) r = consumeToken(b, "explicit");
-    if (!r) r = consumeToken(b, "property");
+    r = consumeToken(b, OVERRIDE_KW);
+    if (!r) r = consumeToken(b, FINAL_KW);
+    if (!r) r = consumeToken(b, EXPLICIT_KW);
+    if (!r) r = consumeToken(b, PROPERTY_KW);
     return r;
   }
 
@@ -939,7 +1148,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   // UFunctionDecl?
   //                  FunctionLocation?
   //                  AccessSpecifier?
-  //                  (TypeRef AND? | '~')?
+  //                  (TypeRef AND? | TILDE)?
   //                  identifier
   //                  ParameterList
   //                  CONST?
@@ -983,20 +1192,20 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // (TypeRef AND? | '~')?
+  // (TypeRef AND? | TILDE)?
   private static boolean FunctionDecl_3(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "FunctionDecl_3")) return false;
     FunctionDecl_3_0(b, l + 1);
     return true;
   }
 
-  // TypeRef AND? | '~'
+  // TypeRef AND? | TILDE
   private static boolean FunctionDecl_3_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "FunctionDecl_3_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = FunctionDecl_3_0_0(b, l + 1);
-    if (!r) r = consumeToken(b, "~");
+    if (!r) r = consumeToken(b, TILDE);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -1043,9 +1252,10 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // ('shared' | 'external')+
+  // (SHARED_KW | EXTERNAL_KW)+
   static boolean FunctionLocation(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "FunctionLocation")) return false;
+    if (!nextTokenIs(b, "", EXTERNAL_KW, SHARED_KW)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = FunctionLocation_0(b, l + 1);
@@ -1058,12 +1268,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // 'shared' | 'external'
+  // SHARED_KW | EXTERNAL_KW
   private static boolean FunctionLocation_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "FunctionLocation_0")) return false;
     boolean r;
-    r = consumeToken(b, "shared");
-    if (!r) r = consumeToken(b, "external");
+    r = consumeToken(b, SHARED_KW);
+    if (!r) r = consumeToken(b, EXTERNAL_KW);
     return r;
   }
 
@@ -1247,7 +1457,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // InclusiveOrExpr (('&&' | 'and') InclusiveOrExpr)*
+  // InclusiveOrExpr ((ANDAND | AND_KW) InclusiveOrExpr)*
   public static boolean LogicalAndExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalAndExpr")) return false;
     boolean r;
@@ -1258,7 +1468,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (('&&' | 'and') InclusiveOrExpr)*
+  // ((ANDAND | AND_KW) InclusiveOrExpr)*
   private static boolean LogicalAndExpr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalAndExpr_1")) return false;
     while (true) {
@@ -1269,7 +1479,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ('&&' | 'and') InclusiveOrExpr
+  // (ANDAND | AND_KW) InclusiveOrExpr
   private static boolean LogicalAndExpr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalAndExpr_1_0")) return false;
     boolean r;
@@ -1280,17 +1490,17 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // '&&' | 'and'
+  // ANDAND | AND_KW
   private static boolean LogicalAndExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalAndExpr_1_0_0")) return false;
     boolean r;
-    r = consumeToken(b, "&&");
-    if (!r) r = consumeToken(b, "and");
+    r = consumeToken(b, ANDAND);
+    if (!r) r = consumeToken(b, AND_KW);
     return r;
   }
 
   /* ********************************************************** */
-  // LogicalAndExpr (('||' | 'or') LogicalAndExpr)*
+  // LogicalAndExpr ((OROR | OR_KW) LogicalAndExpr)*
   public static boolean LogicalOrExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalOrExpr")) return false;
     boolean r;
@@ -1301,7 +1511,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (('||' | 'or') LogicalAndExpr)*
+  // ((OROR | OR_KW) LogicalAndExpr)*
   private static boolean LogicalOrExpr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalOrExpr_1")) return false;
     while (true) {
@@ -1312,7 +1522,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ('||' | 'or') LogicalAndExpr
+  // (OROR | OR_KW) LogicalAndExpr
   private static boolean LogicalOrExpr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalOrExpr_1_0")) return false;
     boolean r;
@@ -1323,37 +1533,42 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // '||' | 'or'
+  // OROR | OR_KW
   private static boolean LogicalOrExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "LogicalOrExpr_1_0_0")) return false;
     boolean r;
-    r = consumeToken(b, "||");
-    if (!r) r = consumeToken(b, "or");
+    r = consumeToken(b, OROR);
+    if (!r) r = consumeToken(b, OR_KW);
     return r;
   }
 
   /* ********************************************************** */
-  // identifier | identifier EQ LPAREN Expr RPAREN
+  // identifier (EQ MetaArgValue)?
   static boolean MetaArg(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MetaArg")) return false;
     if (!nextTokenIs(b, IDENTIFIER)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = identifier(b, l + 1);
-    if (!r) r = MetaArg_1(b, l + 1);
+    r = r && MetaArg_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
-  // identifier EQ LPAREN Expr RPAREN
+  // (EQ MetaArgValue)?
   private static boolean MetaArg_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MetaArg_1")) return false;
+    MetaArg_1_0(b, l + 1);
+    return true;
+  }
+
+  // EQ MetaArgValue
+  private static boolean MetaArg_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArg_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = identifier(b, l + 1);
-    r = r && consumeTokens(b, 0, EQ, LPAREN);
-    r = r && Expr(b, l + 1);
-    r = r && consumeToken(b, RPAREN);
+    r = consumeToken(b, EQ);
+    r = r && MetaArgValue(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -1421,25 +1636,93 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'mixin' FunctionDecl
+  // LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
+  //                        | Expr
+  static boolean MetaArgValue(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArgValue")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = MetaArgValue_0(b, l + 1);
+    if (!r) r = Expr(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
+  private static boolean MetaArgValue_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArgValue_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LPAREN);
+    r = r && MetaArgValue_0_1(b, l + 1);
+    r = r && consumeToken(b, RPAREN);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // [ MetaArg (COMMA MetaArg)* COMMA? ]
+  private static boolean MetaArgValue_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArgValue_0_1")) return false;
+    MetaArgValue_0_1_0(b, l + 1);
+    return true;
+  }
+
+  // MetaArg (COMMA MetaArg)* COMMA?
+  private static boolean MetaArgValue_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArgValue_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = MetaArg(b, l + 1);
+    r = r && MetaArgValue_0_1_0_1(b, l + 1);
+    r = r && MetaArgValue_0_1_0_2(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (COMMA MetaArg)*
+  private static boolean MetaArgValue_0_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArgValue_0_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!MetaArgValue_0_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "MetaArgValue_0_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // COMMA MetaArg
+  private static boolean MetaArgValue_0_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArgValue_0_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, COMMA);
+    r = r && MetaArg(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // COMMA?
+  private static boolean MetaArgValue_0_1_0_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "MetaArgValue_0_1_0_2")) return false;
+    consumeToken(b, COMMA);
+    return true;
+  }
+
+  /* ********************************************************** */
+  // MIXIN_KW    FunctionDecl
   public static boolean MixinDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MixinDecl")) return false;
+    if (!nextTokenIs(b, MIXIN_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, MIXIN_DECL, "<mixin decl>");
-    r = consumeToken(b, "mixin");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, MIXIN_KW);
     r = r && FunctionDecl(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, MIXIN_DECL, r);
     return r;
   }
 
   /* ********************************************************** */
-  // STRING_LITERAL
-  static boolean MultilineString(PsiBuilder b, int l) {
-    return consumeToken(b, STRING_LITERAL);
-  }
-
-  /* ********************************************************** */
-  // UnaryExpr ((MUL | '**' | DIV | REM) UnaryExpr)*
+  // UnaryExpr ((MUL | POWER | DIV | REM) UnaryExpr)*
   public static boolean MultiplyExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MultiplyExpr")) return false;
     boolean r;
@@ -1450,7 +1733,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ((MUL | '**' | DIV | REM) UnaryExpr)*
+  // ((MUL | POWER | DIV | REM) UnaryExpr)*
   private static boolean MultiplyExpr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MultiplyExpr_1")) return false;
     while (true) {
@@ -1461,7 +1744,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // (MUL | '**' | DIV | REM) UnaryExpr
+  // (MUL | POWER | DIV | REM) UnaryExpr
   private static boolean MultiplyExpr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MultiplyExpr_1_0")) return false;
     boolean r;
@@ -1472,12 +1755,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // MUL | '**' | DIV | REM
+  // MUL | POWER | DIV | REM
   private static boolean MultiplyExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "MultiplyExpr_1_0_0")) return false;
     boolean r;
     r = consumeToken(b, MUL);
-    if (!r) r = consumeToken(b, "**");
+    if (!r) r = consumeToken(b, POWER);
     if (!r) r = consumeToken(b, DIV);
     if (!r) r = consumeToken(b, REM);
     return r;
@@ -1546,7 +1829,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // LPAREN [ 'void' | ParameterDecl (COMMA ParameterDecl)* COMMA? ] RPAREN
+  // LPAREN [ VOID_KW | ParameterDecl (COMMA ParameterDecl)* COMMA? ] RPAREN
   public static boolean ParameterList(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ParameterList")) return false;
     if (!nextTokenIs(b, LPAREN)) return false;
@@ -1559,19 +1842,19 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // [ 'void' | ParameterDecl (COMMA ParameterDecl)* COMMA? ]
+  // [ VOID_KW | ParameterDecl (COMMA ParameterDecl)* COMMA? ]
   private static boolean ParameterList_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ParameterList_1")) return false;
     ParameterList_1_0(b, l + 1);
     return true;
   }
 
-  // 'void' | ParameterDecl (COMMA ParameterDecl)* COMMA?
+  // VOID_KW | ParameterDecl (COMMA ParameterDecl)* COMMA?
   private static boolean ParameterList_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ParameterList_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "void");
+    r = consumeToken(b, VOID_KW);
     if (!r) r = ParameterList_1_0_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -1679,33 +1962,35 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '--' | '++'
+  // MINUSMINUS | PLUSPLUS
   static boolean PostfixUpdate(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "PostfixUpdate")) return false;
+    if (!nextTokenIs(b, "", MINUSMINUS, PLUSPLUS)) return false;
     boolean r;
-    r = consumeToken(b, "--");
-    if (!r) r = consumeToken(b, "++");
+    r = consumeToken(b, MINUSMINUS);
+    if (!r) r = consumeToken(b, PLUSPLUS);
     return r;
   }
 
   /* ********************************************************** */
-  // '@' | 'not' | EXCL | '~' | MINUS | PLUS
+  // AT | NOT_KW | EXCL | TILDE | MINUS | PLUS
   static boolean PrefixOp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "PrefixOp")) return false;
     boolean r;
-    r = consumeToken(b, "@");
-    if (!r) r = consumeToken(b, "not");
+    r = consumeToken(b, AT);
+    if (!r) r = consumeToken(b, NOT_KW);
     if (!r) r = consumeToken(b, EXCL);
-    if (!r) r = consumeToken(b, "~");
+    if (!r) r = consumeToken(b, TILDE);
     if (!r) r = consumeToken(b, MINUS);
     if (!r) r = consumeToken(b, PLUS);
     return r;
   }
 
   /* ********************************************************** */
-  // ('--' | '++') UnaryExpr
+  // (MINUSMINUS | PLUSPLUS) UnaryExpr
   static boolean PrefixUpdateExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "PrefixUpdateExpr")) return false;
+    if (!nextTokenIs(b, "", MINUSMINUS, PLUSPLUS)) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = PrefixUpdateExpr_0(b, l + 1);
@@ -1714,35 +1999,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // '--' | '++'
+  // MINUSMINUS | PLUSPLUS
   private static boolean PrefixUpdateExpr_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "PrefixUpdateExpr_0")) return false;
     boolean r;
-    r = consumeToken(b, "--");
-    if (!r) r = consumeToken(b, "++");
-    return r;
-  }
-
-  /* ********************************************************** */
-  // identifier (DoubleQuotedString | SingleQuotedString | MultilineString)
-  static boolean PrefixedStringLiteral(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "PrefixedStringLiteral")) return false;
-    if (!nextTokenIs(b, IDENTIFIER)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = identifier(b, l + 1);
-    r = r && PrefixedStringLiteral_1(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // DoubleQuotedString | SingleQuotedString | MultilineString
-  private static boolean PrefixedStringLiteral_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "PrefixedStringLiteral_1")) return false;
-    boolean r;
-    r = DoubleQuotedString(b, l + 1);
-    if (!r) r = SingleQuotedString(b, l + 1);
-    if (!r) r = MultilineString(b, l + 1);
+    r = consumeToken(b, MINUSMINUS);
+    if (!r) r = consumeToken(b, PLUSPLUS);
     return r;
   }
 
@@ -1772,32 +2034,32 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'void'
-  //                         | 'int' | 'int8' | 'int16' | 'int32' | 'int64'
-  //                         | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
-  //                         | 'float' | 'double' | 'bool'
+  // VOID_KW
+  //                         | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+  //                         | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+  //                         | FLOAT_KW | DOUBLE_KW | BOOL_KW
   static boolean PrimitiveType(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "PrimitiveType")) return false;
     boolean r;
-    r = consumeToken(b, "void");
-    if (!r) r = consumeToken(b, "int");
-    if (!r) r = consumeToken(b, "int8");
-    if (!r) r = consumeToken(b, "int16");
-    if (!r) r = consumeToken(b, "int32");
-    if (!r) r = consumeToken(b, "int64");
-    if (!r) r = consumeToken(b, "uint");
-    if (!r) r = consumeToken(b, "uint8");
-    if (!r) r = consumeToken(b, "uint16");
-    if (!r) r = consumeToken(b, "uint32");
-    if (!r) r = consumeToken(b, "uint64");
-    if (!r) r = consumeToken(b, "float");
-    if (!r) r = consumeToken(b, "double");
-    if (!r) r = consumeToken(b, "bool");
+    r = consumeToken(b, VOID_KW);
+    if (!r) r = consumeToken(b, INT_KW);
+    if (!r) r = consumeToken(b, INT8_KW);
+    if (!r) r = consumeToken(b, INT16_KW);
+    if (!r) r = consumeToken(b, INT32_KW);
+    if (!r) r = consumeToken(b, INT64_KW);
+    if (!r) r = consumeToken(b, UINT_KW);
+    if (!r) r = consumeToken(b, UINT8_KW);
+    if (!r) r = consumeToken(b, UINT16_KW);
+    if (!r) r = consumeToken(b, UINT32_KW);
+    if (!r) r = consumeToken(b, UINT64_KW);
+    if (!r) r = consumeToken(b, FLOAT_KW);
+    if (!r) r = consumeToken(b, DOUBLE_KW);
+    if (!r) r = consumeToken(b, BOOL_KW);
     return r;
   }
 
   /* ********************************************************** */
-  // ShiftExpr ((GT | '>=' | '<=' | LT | 'is' | '!is') ShiftExpr)*
+  // ShiftExpr ((GT | GTEQ | LTEQ | LT | IS_KW | EXCL IS_KW) ShiftExpr)*
   public static boolean RelationalExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "RelationalExpr")) return false;
     boolean r;
@@ -1808,7 +2070,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // ((GT | '>=' | '<=' | LT | 'is' | '!is') ShiftExpr)*
+  // ((GT | GTEQ | LTEQ | LT | IS_KW | EXCL IS_KW) ShiftExpr)*
   private static boolean RelationalExpr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "RelationalExpr_1")) return false;
     while (true) {
@@ -1819,7 +2081,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // (GT | '>=' | '<=' | LT | 'is' | '!is') ShiftExpr
+  // (GT | GTEQ | LTEQ | LT | IS_KW | EXCL IS_KW) ShiftExpr
   private static boolean RelationalExpr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "RelationalExpr_1_0")) return false;
     boolean r;
@@ -1830,16 +2092,18 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // GT | '>=' | '<=' | LT | 'is' | '!is'
+  // GT | GTEQ | LTEQ | LT | IS_KW | EXCL IS_KW
   private static boolean RelationalExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "RelationalExpr_1_0_0")) return false;
     boolean r;
+    Marker m = enter_section_(b);
     r = consumeToken(b, GT);
-    if (!r) r = consumeToken(b, ">=");
-    if (!r) r = consumeToken(b, "<=");
+    if (!r) r = consumeToken(b, GTEQ);
+    if (!r) r = consumeToken(b, LTEQ);
     if (!r) r = consumeToken(b, LT);
-    if (!r) r = consumeToken(b, "is");
-    if (!r) r = consumeToken(b, "!is");
+    if (!r) r = consumeToken(b, IS_KW);
+    if (!r) r = parseTokens(b, 0, EXCL, IS_KW);
+    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -1938,19 +2202,106 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // Item*
+  // ScriptItem*
   static boolean Script(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "Script")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!Item(b, l + 1)) break;
+      if (!ScriptItem(b, l + 1)) break;
       if (!empty_element_parsed_guard_(b, "Script", c)) break;
     }
     return true;
   }
 
   /* ********************************************************** */
-  // AddExpr (('<<' | '>>' | '>>>') AddExpr)*
+  // !(<<eof>>) Item
+  static boolean ScriptItem(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ScriptItem")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_);
+    r = ScriptItem_0(b, l + 1);
+    p = r; // pin = 1
+    r = r && Item(b, l + 1);
+    exit_section_(b, l, m, r, p, AngelscriptParser::ScriptItem_recover);
+    return r || p;
+  }
+
+  // !(<<eof>>)
+  private static boolean ScriptItem_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ScriptItem_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !ScriptItem_0_0(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // <<eof>>
+  private static boolean ScriptItem_0_0(PsiBuilder b, int l) {
+    return eof(b, l + 1);
+  }
+
+  /* ********************************************************** */
+  // !(CLASS | STRUCT | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                | TYPEDEF_KW | UCLASS_KW | USTRUCT_KW | UFUNCTION_KW | UPROPERTY_KW
+  //                                | IDENTIFIER | CONST | VOID_KW
+  //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+  //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+  //                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO | <<eof>>)
+  static boolean ScriptItem_recover(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ScriptItem_recover")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !ScriptItem_recover_0(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // CLASS | STRUCT | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                | TYPEDEF_KW | UCLASS_KW | USTRUCT_KW | UFUNCTION_KW | UPROPERTY_KW
+  //                                | IDENTIFIER | CONST | VOID_KW
+  //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+  //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+  //                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO | <<eof>>
+  private static boolean ScriptItem_recover_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "ScriptItem_recover_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, CLASS);
+    if (!r) r = consumeToken(b, STRUCT);
+    if (!r) r = consumeToken(b, EVENT_KW);
+    if (!r) r = consumeToken(b, DELEGATE_KW);
+    if (!r) r = consumeToken(b, MIXIN_KW);
+    if (!r) r = consumeToken(b, TYPEDEF_KW);
+    if (!r) r = consumeToken(b, UCLASS_KW);
+    if (!r) r = consumeToken(b, USTRUCT_KW);
+    if (!r) r = consumeToken(b, UFUNCTION_KW);
+    if (!r) r = consumeToken(b, UPROPERTY_KW);
+    if (!r) r = consumeToken(b, IDENTIFIER);
+    if (!r) r = consumeToken(b, CONST);
+    if (!r) r = consumeToken(b, VOID_KW);
+    if (!r) r = consumeToken(b, INT_KW);
+    if (!r) r = consumeToken(b, INT8_KW);
+    if (!r) r = consumeToken(b, INT16_KW);
+    if (!r) r = consumeToken(b, INT32_KW);
+    if (!r) r = consumeToken(b, INT64_KW);
+    if (!r) r = consumeToken(b, UINT_KW);
+    if (!r) r = consumeToken(b, UINT8_KW);
+    if (!r) r = consumeToken(b, UINT16_KW);
+    if (!r) r = consumeToken(b, UINT32_KW);
+    if (!r) r = consumeToken(b, UINT64_KW);
+    if (!r) r = consumeToken(b, FLOAT_KW);
+    if (!r) r = consumeToken(b, DOUBLE_KW);
+    if (!r) r = consumeToken(b, BOOL_KW);
+    if (!r) r = consumeToken(b, AUTO_KW);
+    if (!r) r = consumeToken(b, AUTO);
+    if (!r) r = eof(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // AddExpr ((LTLT | GT GT) AddExpr)*
   public static boolean ShiftExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ShiftExpr")) return false;
     boolean r;
@@ -1961,7 +2312,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (('<<' | '>>' | '>>>') AddExpr)*
+  // ((LTLT | GT GT) AddExpr)*
   private static boolean ShiftExpr_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ShiftExpr_1")) return false;
     while (true) {
@@ -1972,7 +2323,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ('<<' | '>>' | '>>>') AddExpr
+  // (LTLT | GT GT) AddExpr
   private static boolean ShiftExpr_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ShiftExpr_1_0")) return false;
     boolean r;
@@ -1983,20 +2334,15 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // '<<' | '>>' | '>>>'
+  // LTLT | GT GT
   private static boolean ShiftExpr_1_0_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ShiftExpr_1_0_0")) return false;
     boolean r;
-    r = consumeToken(b, "<<");
-    if (!r) r = consumeToken(b, ">>");
-    if (!r) r = consumeToken(b, ">>>");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, LTLT);
+    if (!r) r = parseTokens(b, 0, GT, GT);
+    exit_section_(b, m, null, r);
     return r;
-  }
-
-  /* ********************************************************** */
-  // STRING_LITERAL
-  static boolean SingleQuotedString(PsiBuilder b, int l) {
-    return consumeToken(b, STRING_LITERAL);
   }
 
   /* ********************************************************** */
@@ -2015,12 +2361,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   // string_literal string_literal+
   public static boolean StringConcatExpr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "StringConcatExpr")) return false;
-    if (!nextTokenIs(b, "<string concat expr>", IDENTIFIER, STRING_LITERAL)) return false;
+    if (!nextTokenIs(b, STRING_LITERAL)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, STRING_CONCAT_EXPR, "<string concat expr>");
+    Marker m = enter_section_(b);
     r = string_literal(b, l + 1);
     r = r && StringConcatExpr_1(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, STRING_CONCAT_EXPR, r);
     return r;
   }
 
@@ -2040,9 +2386,10 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // UStructDecl? STRUCT identifier LBRACE StructMember* RBRACE SEMICOLON?
+  // UStructDecl? STRUCT identifier LBRACE StructMember_with_recover* RBRACE SEMICOLON?
   public static boolean StructDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "StructDecl")) return false;
+    if (!nextTokenIs(b, "<struct decl>", STRUCT, USTRUCT_KW)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, STRUCT_DECL, "<struct decl>");
     r = StructDecl_0(b, l + 1);
@@ -2063,12 +2410,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // StructMember*
+  // StructMember_with_recover*
   private static boolean StructDecl_4(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "StructDecl_4")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!StructMember(b, l + 1)) break;
+      if (!StructMember_with_recover(b, l + 1)) break;
       if (!empty_element_parsed_guard_(b, "StructDecl_4", c)) break;
     }
     return true;
@@ -2082,13 +2429,48 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // FunctionDecl | VariableDecl | Comment
+  // FunctionDecl | DefaultValueDecl | VariableDecl | Comment
   static boolean StructMember(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "StructMember")) return false;
     boolean r;
     r = FunctionDecl(b, l + 1);
+    if (!r) r = DefaultValueDecl(b, l + 1);
     if (!r) r = VariableDecl(b, l + 1);
     if (!r) r = Comment(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // !(RBRACE | <<eof>>) StructMember
+  static boolean StructMember_with_recover(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "StructMember_with_recover")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_);
+    r = StructMember_with_recover_0(b, l + 1);
+    p = r; // pin = 1
+    r = r && StructMember(b, l + 1);
+    exit_section_(b, l, m, r, p, AngelscriptParser::ClassMember_recover);
+    return r || p;
+  }
+
+  // !(RBRACE | <<eof>>)
+  private static boolean StructMember_with_recover_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "StructMember_with_recover_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NOT_);
+    r = !StructMember_with_recover_0_0(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // RBRACE | <<eof>>
+  private static boolean StructMember_with_recover_0_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "StructMember_with_recover_0_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, RBRACE);
+    if (!r) r = eof(b, l + 1);
+    exit_section_(b, m, null, r);
     return r;
   }
 
@@ -2107,15 +2489,16 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'switch' ParenthesizedExpr CompoundStatement
+  // SWITCH_KW ParenthesizedExpr CompoundStatement
   public static boolean SwitchStatement(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "SwitchStatement")) return false;
+    if (!nextTokenIs(b, SWITCH_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, SWITCH_STATEMENT, "<switch statement>");
-    r = consumeToken(b, "switch");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, SWITCH_KW);
     r = r && ParenthesizedExpr(b, l + 1);
     r = r && CompoundStatement(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, SWITCH_STATEMENT, r);
     return r;
   }
 
@@ -2157,7 +2540,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // AND (IN | OUT | 'inout')?
+  // AND (IN | OUT | INOUT_KW)?
   static boolean TypeMod(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypeMod")) return false;
     if (!nextTokenIs(b, AND)) return false;
@@ -2169,20 +2552,20 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // (IN | OUT | 'inout')?
+  // (IN | OUT | INOUT_KW)?
   private static boolean TypeMod_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypeMod_1")) return false;
     TypeMod_1_0(b, l + 1);
     return true;
   }
 
-  // IN | OUT | 'inout'
+  // IN | OUT | INOUT_KW
   private static boolean TypeMod_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypeMod_1_0")) return false;
     boolean r;
     r = consumeToken(b, IN);
     if (!r) r = consumeToken(b, OUT);
-    if (!r) r = consumeToken(b, "inout");
+    if (!r) r = consumeToken(b, INOUT_KW);
     return r;
   }
 
@@ -2191,7 +2574,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   //             ScopeRef?
   //             DataType
   //             TypeArgument*
-  //             ( LBRACK RBRACK | '@' CONST? )*
+  //             ( LBRACK RBRACK | AT CONST? )*
   public static boolean TypeRef(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypeRef")) return false;
     boolean r;
@@ -2230,7 +2613,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ( LBRACK RBRACK | '@' CONST? )*
+  // ( LBRACK RBRACK | AT CONST? )*
   private static boolean TypeRef_4(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypeRef_4")) return false;
     while (true) {
@@ -2241,7 +2624,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // LBRACK RBRACK | '@' CONST?
+  // LBRACK RBRACK | AT CONST?
   private static boolean TypeRef_4_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypeRef_4_0")) return false;
     boolean r;
@@ -2252,12 +2635,12 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // '@' CONST?
+  // AT CONST?
   private static boolean TypeRef_4_0_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypeRef_4_0_1")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, "@");
+    r = consumeToken(b, AT);
     r = r && TypeRef_4_0_1_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
@@ -2271,64 +2654,69 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'typedef' PrimitiveType identifier SEMICOLON
+  // TYPEDEF_KW PrimitiveType identifier SEMICOLON
   public static boolean TypedefDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "TypedefDecl")) return false;
+    if (!nextTokenIs(b, TYPEDEF_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, TYPEDEF_DECL, "<typedef decl>");
-    r = consumeToken(b, "typedef");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, TYPEDEF_KW);
     r = r && PrimitiveType(b, l + 1);
     r = r && identifier(b, l + 1);
     r = r && consumeToken(b, SEMICOLON);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, TYPEDEF_DECL, r);
     return r;
   }
 
   /* ********************************************************** */
-  // 'UCLASS' MetaArgList
+  // UCLASS_KW    MetaArgList
   public static boolean UClassDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "UClassDecl")) return false;
+    if (!nextTokenIs(b, UCLASS_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, U_CLASS_DECL, "<u class decl>");
-    r = consumeToken(b, "UCLASS");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, UCLASS_KW);
     r = r && MetaArgList(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, U_CLASS_DECL, r);
     return r;
   }
 
   /* ********************************************************** */
-  // 'UFUNCTION' MetaArgList
+  // UFUNCTION_KW MetaArgList
   public static boolean UFunctionDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "UFunctionDecl")) return false;
+    if (!nextTokenIs(b, UFUNCTION_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, U_FUNCTION_DECL, "<u function decl>");
-    r = consumeToken(b, "UFUNCTION");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, UFUNCTION_KW);
     r = r && MetaArgList(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, U_FUNCTION_DECL, r);
     return r;
   }
 
   /* ********************************************************** */
-  // 'UPROPERTY' MetaArgList
+  // UPROPERTY_KW MetaArgList
   public static boolean UPropertyDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "UPropertyDecl")) return false;
+    if (!nextTokenIs(b, UPROPERTY_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, U_PROPERTY_DECL, "<u property decl>");
-    r = consumeToken(b, "UPROPERTY");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, UPROPERTY_KW);
     r = r && MetaArgList(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, U_PROPERTY_DECL, r);
     return r;
   }
 
   /* ********************************************************** */
-  // 'USTRUCT' MetaArgList
+  // USTRUCT_KW   MetaArgList
   public static boolean UStructDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "UStructDecl")) return false;
+    if (!nextTokenIs(b, USTRUCT_KW)) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, U_STRUCT_DECL, "<u struct decl>");
-    r = consumeToken(b, "USTRUCT");
+    Marker m = enter_section_(b);
+    r = consumeToken(b, USTRUCT_KW);
     r = r && MetaArgList(b, l + 1);
-    exit_section_(b, l, m, r, false, null);
+    exit_section_(b, m, U_STRUCT_DECL, r);
     return r;
   }
 
@@ -2513,9 +2901,9 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'nullptr'
+  // NULLPTR_KW
   static boolean null_literal(PsiBuilder b, int l) {
-    return consumeToken(b, "nullptr");
+    return consumeToken(b, NULLPTR_KW);
   }
 
   /* ********************************************************** */
@@ -2525,19 +2913,9 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // PrefixedStringLiteral
-  //                          | DoubleQuotedString
-  //                          | SingleQuotedString
-  //                          | MultilineString
+  // STRING_LITERAL
   static boolean string_literal(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "string_literal")) return false;
-    if (!nextTokenIs(b, "", IDENTIFIER, STRING_LITERAL)) return false;
-    boolean r;
-    r = PrefixedStringLiteral(b, l + 1);
-    if (!r) r = DoubleQuotedString(b, l + 1);
-    if (!r) r = SingleQuotedString(b, l + 1);
-    if (!r) r = MultilineString(b, l + 1);
-    return r;
+    return consumeToken(b, STRING_LITERAL);
   }
 
 }

@@ -35,6 +35,12 @@ public class AngelscriptClassDeclImpl extends ASTWrapperPsiElement implements An
 
   @Override
   @NotNull
+  public List<AngelscriptDefaultValueDecl> getDefaultValueDeclList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptDefaultValueDecl.class);
+  }
+
+  @Override
+  @NotNull
   public List<AngelscriptFunctionDecl> getFunctionDeclList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptFunctionDecl.class);
   }

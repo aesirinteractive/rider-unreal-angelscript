@@ -11,6 +11,9 @@ public interface AngelscriptStructDecl extends PsiElement {
   List<AngelscriptComment> getCommentList();
 
   @NotNull
+  List<AngelscriptDefaultValueDecl> getDefaultValueDeclList();
+
+  @NotNull
   List<AngelscriptFunctionDecl> getFunctionDeclList();
 
   @Nullable

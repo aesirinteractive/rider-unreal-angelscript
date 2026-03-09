@@ -22,6 +22,7 @@ public interface AngelscriptTypes {
   IElementType COMPOUND_STATEMENT = new AngelscriptElementType("COMPOUND_STATEMENT");
   IElementType CONDITIONAL_EXPR = new AngelscriptElementType("CONDITIONAL_EXPR");
   IElementType CONTINUE_STATEMENT = new AngelscriptElementType("CONTINUE_STATEMENT");
+  IElementType DEFAULT_VALUE_DECL = new AngelscriptElementType("DEFAULT_VALUE_DECL");
   IElementType DELEGATE_DECL = new AngelscriptElementType("DELEGATE_DECL");
   IElementType DO_STATEMENT = new AngelscriptElementType("DO_STATEMENT");
   IElementType ELSE_CLAUSE = new AngelscriptElementType("ELSE_CLAUSE");
@@ -66,60 +67,117 @@ public interface AngelscriptTypes {
   IElementType WHILE_STATEMENT = new AngelscriptElementType("WHILE_STATEMENT");
 
   IElementType AND = new AngelscriptTokenType("&");
+  IElementType ANDAND = new AngelscriptTokenType("&&");
   IElementType ANDEQ = new AngelscriptTokenType("&=");
+  IElementType AND_KW = new AngelscriptTokenType("and");
+  IElementType AT = new AngelscriptTokenType("@");
   IElementType AUTO = new AngelscriptTokenType("AUTO");
+  IElementType AUTO_KW = new AngelscriptTokenType("auto");
+  IElementType BOOL_KW = new AngelscriptTokenType("bool");
   IElementType BOOL_LITERAL = new AngelscriptTokenType("BOOL_LITERAL");
   IElementType BREAK = new AngelscriptTokenType("break");
+  IElementType CASE_KW = new AngelscriptTokenType("case");
   IElementType CLASS = new AngelscriptTokenType("class");
   IElementType COLON = new AngelscriptTokenType(":");
   IElementType COLONCOLON = new AngelscriptTokenType("::");
   IElementType COMMA = new AngelscriptTokenType(",");
   IElementType CONST = new AngelscriptTokenType("const");
   IElementType CONTINUE = new AngelscriptTokenType("continue");
+  IElementType DEFAULT_KW = new AngelscriptTokenType("default");
+  IElementType DELEGATE_KW = new AngelscriptTokenType("delegate");
   IElementType DIV = new AngelscriptTokenType("/");
   IElementType DIVEQ = new AngelscriptTokenType("/=");
   IElementType DOT = new AngelscriptTokenType(".");
+  IElementType DOUBLE_KW = new AngelscriptTokenType("double");
+  IElementType DO_KW = new AngelscriptTokenType("do");
   IElementType ELSE = new AngelscriptTokenType("else");
   IElementType ENUM = new AngelscriptTokenType("enum");
   IElementType EQ = new AngelscriptTokenType("=");
   IElementType EQEQ = new AngelscriptTokenType("==");
+  IElementType EVENT_KW = new AngelscriptTokenType("event");
   IElementType EXCL = new AngelscriptTokenType("!");
   IElementType EXCLEQ = new AngelscriptTokenType("!=");
+  IElementType EXPLICIT_KW = new AngelscriptTokenType("explicit");
+  IElementType EXTERNAL_KW = new AngelscriptTokenType("external");
+  IElementType FINAL_KW = new AngelscriptTokenType("final");
+  IElementType FLOAT_KW = new AngelscriptTokenType("float");
   IElementType FOR = new AngelscriptTokenType("for");
   IElementType GT = new AngelscriptTokenType(">");
+  IElementType GTEQ = new AngelscriptTokenType(">=");
   IElementType IDENTIFIER = new AngelscriptTokenType("IDENTIFIER");
   IElementType IF = new AngelscriptTokenType("if");
   IElementType IN = new AngelscriptTokenType("in");
+  IElementType INOUT_KW = new AngelscriptTokenType("inout");
+  IElementType INT16_KW = new AngelscriptTokenType("int16");
+  IElementType INT32_KW = new AngelscriptTokenType("int32");
+  IElementType INT64_KW = new AngelscriptTokenType("int64");
+  IElementType INT8_KW = new AngelscriptTokenType("int8");
+  IElementType INT_KW = new AngelscriptTokenType("int");
+  IElementType IS_KW = new AngelscriptTokenType("is");
   IElementType LBRACE = new AngelscriptTokenType("{");
   IElementType LBRACK = new AngelscriptTokenType("[");
   IElementType LPAREN = new AngelscriptTokenType("(");
+  IElementType LSHIFTEQ = new AngelscriptTokenType("<<=");
   IElementType LT = new AngelscriptTokenType("<");
+  IElementType LTEQ = new AngelscriptTokenType("<=");
+  IElementType LTLT = new AngelscriptTokenType("<<");
   IElementType MINUS = new AngelscriptTokenType("-");
   IElementType MINUSEQ = new AngelscriptTokenType("-=");
+  IElementType MINUSMINUS = new AngelscriptTokenType("--");
+  IElementType MIXIN_KW = new AngelscriptTokenType("mixin");
   IElementType MUL = new AngelscriptTokenType("*");
   IElementType MULEQ = new AngelscriptTokenType("*=");
+  IElementType NOT_KW = new AngelscriptTokenType("not");
+  IElementType NULLPTR_KW = new AngelscriptTokenType("nullptr");
   IElementType NUMBER_LITERAL = new AngelscriptTokenType("NUMBER_LITERAL");
   IElementType OR = new AngelscriptTokenType("|");
   IElementType OREQ = new AngelscriptTokenType("|=");
+  IElementType OROR = new AngelscriptTokenType("||");
+  IElementType OR_KW = new AngelscriptTokenType("or");
   IElementType OUT = new AngelscriptTokenType("OUT");
+  IElementType OVERRIDE_KW = new AngelscriptTokenType("override");
   IElementType PLUS = new AngelscriptTokenType("+");
   IElementType PLUSEQ = new AngelscriptTokenType("+=");
+  IElementType PLUSPLUS = new AngelscriptTokenType("++");
+  IElementType POWER = new AngelscriptTokenType("**");
+  IElementType POWEREQ = new AngelscriptTokenType("**=");
+  IElementType PRIVATE_KW = new AngelscriptTokenType("private");
+  IElementType PROPERTY_KW = new AngelscriptTokenType("property");
+  IElementType PROTECTED_KW = new AngelscriptTokenType("protected");
   IElementType PUBLIC = new AngelscriptTokenType("public");
+  IElementType QUEST = new AngelscriptTokenType("?");
   IElementType RBRACE = new AngelscriptTokenType("}");
   IElementType RBRACK = new AngelscriptTokenType("]");
   IElementType REM = new AngelscriptTokenType("%");
   IElementType REMEQ = new AngelscriptTokenType("%=");
   IElementType RETURN = new AngelscriptTokenType("return");
   IElementType RPAREN = new AngelscriptTokenType(")");
+  IElementType RRSHIFTEQ = new AngelscriptTokenType(">>>=");
+  IElementType RSHIFTEQ = new AngelscriptTokenType(">>=");
   IElementType SEMICOLON = new AngelscriptTokenType(";");
   IElementType SHA = new AngelscriptTokenType("#");
+  IElementType SHARED_KW = new AngelscriptTokenType("shared");
   IElementType STATIC = new AngelscriptTokenType("static");
   IElementType STRING_LITERAL = new AngelscriptTokenType("STRING_LITERAL");
   IElementType STRUCT = new AngelscriptTokenType("struct");
   IElementType SUPER = new AngelscriptTokenType("super");
+  IElementType SWITCH_KW = new AngelscriptTokenType("switch");
+  IElementType TILDE = new AngelscriptTokenType("~");
+  IElementType TYPEDEF_KW = new AngelscriptTokenType("typedef");
+  IElementType UCLASS_KW = new AngelscriptTokenType("UCLASS");
+  IElementType UFUNCTION_KW = new AngelscriptTokenType("UFUNCTION");
+  IElementType UINT16_KW = new AngelscriptTokenType("uint16");
+  IElementType UINT32_KW = new AngelscriptTokenType("uint32");
+  IElementType UINT64_KW = new AngelscriptTokenType("uint64");
+  IElementType UINT8_KW = new AngelscriptTokenType("uint8");
+  IElementType UINT_KW = new AngelscriptTokenType("uint");
+  IElementType UPROPERTY_KW = new AngelscriptTokenType("UPROPERTY");
+  IElementType USTRUCT_KW = new AngelscriptTokenType("USTRUCT");
+  IElementType VOID_KW = new AngelscriptTokenType("void");
   IElementType WHILE = new AngelscriptTokenType("while");
   IElementType XOR = new AngelscriptTokenType("^");
   IElementType XOREQ = new AngelscriptTokenType("^=");
+  IElementType XOR_KW = new AngelscriptTokenType("xor");
 
   class Factory {
     public static PsiElement createElement(ASTNode node) {
@@ -165,6 +223,9 @@ public interface AngelscriptTypes {
       }
       else if (type == CONTINUE_STATEMENT) {
         return new AngelscriptContinueStatementImpl(node);
+      }
+      else if (type == DEFAULT_VALUE_DECL) {
+        return new AngelscriptDefaultValueDeclImpl(node);
       }
       else if (type == DELEGATE_DECL) {
         return new AngelscriptDelegateDeclImpl(node);
