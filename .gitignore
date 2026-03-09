@@ -1,5 +1,8 @@
 .gradle
 build/
+build2/
+angelscript-syntax/
+grammar-angelscript
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -43,3 +46,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+grammar-angelscript/resources/tree-sitter-angelscript.lib
+idea-flex.skeleton
+jflex-1.9.2.jar
+.nev

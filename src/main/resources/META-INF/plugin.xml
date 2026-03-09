@@ -21,6 +21,7 @@
     <depends>com.intellij.modules.lsp</depends>
 
     <depends>com.intellij.modules.json</depends>
+    <depends>com.intellij.modules.platform</depends>
 <!--    <depends>com.intellij.properties</depends>-->
     <resource-bundle>messages.MyMessageBundle</resource-bundle>
     <!-- Extensions defined by the plugin.
@@ -36,8 +37,25 @@
             displayName="AngelScript"/>
         <platform.lsp.serverSupportProvider implementation="com.aesirinteractive.angelscript.AngelscriptLspServerSupportProvider"/>
         <notificationGroup id="AngelScript LSP" displayType="BALLOON"/>
-<!--        <configurationType implementation="com.aesirinteractive.angelscript.AngelscriptConfigurationType"/>-->
-<!--        <programRunner implementation="com.aesirinteractive.angelscript.AngelscriptProgramRunner"/>-->
-<!--        <xdebugger.breakpointType implementation="com.aesirinteractive.angelscript.AngelscriptBreakpointType"/>-->
+        <renameHandler implementation="com.aesirinteractive.angelscript.AngelscriptRenameHandler" />
+        <fileType
+            name="AngelsScript"
+            implementationClass="com.aesirinteractive.angelscript.AngelscriptFileType"
+            fieldName="INSTANCE"
+            language="AngelsScript"
+            extensions="as" />
+        <configurationType implementation="com.aesirinteractive.angelscript.AngelscriptConfigurationType"/>
+        <programRunner implementation="com.aesirinteractive.angelscript.AngelscriptProgramRunner"/>
+        <xdebugger.breakpointType implementation="com.aesirinteractive.angelscript.AngelscriptBreakpointType"/>
+
+        <lang.parserDefinition
+                language="AngelsScript"
+                implementationClass="com.aesirinteractive.angelscript.AngelscriptParserDefinition"/>
+        <lang.syntaxHighlighterFactory
+                language="AngelsScript"
+                implementationClass="com.aesirinteractive.angelscript.AngelscriptSyntaxHighlighterFactory"/>
+
+        <colorSettingsPage
+                implementation="com.aesirinteractive.angelscript.AngelscriptColorSettingsPage"/>
     </extensions>
 </idea-plugin>

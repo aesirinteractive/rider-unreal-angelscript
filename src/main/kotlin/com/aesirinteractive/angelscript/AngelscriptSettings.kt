@@ -6,7 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 
-enum class LspPathKind { Bundled, VsCode, Custom }
+enum class LspPathKind { Bundled, VsCode, Custom, CommandLine }
 
 @Service(Service.Level.APP)
 @State(name = "AngelscriptSettings", storages = [Storage("angelscript.xml")])
@@ -15,7 +15,12 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     data class State(
         var nodePath: String = "node",
         var lspPath: String = "",
-        var lspPathKind: LspPathKind = LspPathKind.Bundled
+        var lspPathKind: LspPathKind = LspPathKind.Bundled,
+        var customCommandLine: String = "",
+        var fileExtensions: String = "as",
+        var debugHost: String = "127.0.0.1",
+        var debugPort: Int = 27099,
+        var autoAttachDebugger: Boolean = true
     )
 
     private var state = State()
@@ -37,6 +42,29 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var lspPathKind: LspPathKind
         get() = state.lspPathKind
         set(value) { state.lspPathKind = value }
+
+    var customCommandLine: String
+        get() = state.customCommandLine
+        set(value) { state.customCommandLine = value }
+
+    var fileExtensions: String
+        get() = state.fileExtensions
+        set(value) { state.fileExtensions = value }
+
+    var debugHost: String
+        get() = state.debugHost
+        set(value) { state.debugHost = value }
+
+    var debugPort: Int
+        get() = state.debugPort
+        set(value) { state.debugPort = value }
+
+    var autoAttachDebugger: Boolean
+        get() = state.autoAttachDebugger
+        set(value) { state.autoAttachDebugger = value }
+
+    fun parsedFileExtensions(): Set<String> =
+        fileExtensions.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
     companion object {
         fun getInstance(): AngelscriptSettings =

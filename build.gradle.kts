@@ -52,11 +52,22 @@ tasks {
         from("vscode-unreal-angelscript/language-server/dist/server.js") {
             into("lsp")
         }
+        from("vscode-unreal-angelscript/resources/file-icon-dark-theme.svg") {
+            into("icons")
+        }
     }
 }
 
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs("src/main/gen")
+        }
     }
 }

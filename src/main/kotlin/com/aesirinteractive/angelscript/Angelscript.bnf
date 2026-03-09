@@ -1,0 +1,318 @@
+﻿{
+  parserClass="com.aesirinteractive.angelscript.AngelscriptParser"
+  parserUtilClass="com.intellij.lang.parser.GeneratedParserUtilBase"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Angelscript"
+  psiImplClassSuffix="Impl"
+  psiPackage="com.aesirinteractive.angelscript.psi"
+  psiImplPackage="com.aesirinteractive.angelscript.psi.impl"
+
+  elementTypeHolderClass="com.aesirinteractive.angelscript.AngelscriptTypes"
+  elementTypeClass="com.aesirinteractive.angelscript.AngelscriptElementType"
+  tokenTypeClass="com.aesirinteractive.angelscript.AngelscriptTokenType"
+
+  tokens=[
+    // Trivia
+//    COMMENT
+    WHITE_SPACE
+
+    // Identifiers and literals
+    IDENTIFIER
+    NUMBER_LITERAL
+    STRING_LITERAL
+    BOOL_LITERAL
+
+    // Brackets
+    LBRACE='{'
+    RBRACE='}'
+    LBRACK='['
+    RBRACK=']'
+    LPAREN='('
+    RPAREN=')'
+
+    // Punctuation
+    COLONCOLON='::'
+    COLON=':'
+    SEMICOLON=';'
+    COMMA=','
+    DOT='.'
+
+    // Comparison operators
+    EQEQ='=='
+    EXCLEQ='!='
+    LT='<'
+    GT='>'
+
+    // Assignment operators
+    EQ='='
+    PLUSEQ='+='
+    MINUSEQ='-='
+    MULEQ='*='
+    DIVEQ='/='
+    REMEQ='%='
+    ANDEQ='&='
+    OREQ='|='
+    XOREQ='^='
+
+    // Arithmetic operators
+    PLUS='+'
+    MINUS='-'
+    MUL='*'
+    DIV='/'
+    REM='%'
+
+    // Bitwise operators
+    AND='&'
+    OR='|'
+    XOR='^'
+    EXCL='!'
+
+    // Other
+    SHA='#'
+
+    // Keywords
+    BREAK='break'
+    CONST='const'
+    CONTINUE='continue'
+    ELSE='else'
+    ENUM='enum'
+    FOR='for'
+    IF='if'
+    IN='in'
+    OUT='OUT'
+    AUTO='AUTO'
+    WHILE='while'
+    PUBLIC='public'
+    RETURN='return'
+    STATIC='static'
+    STRUCT='struct'
+    CLASS='class'
+    SUPER='super'
+  ]
+
+  extends(".*Expr")=Expr
+}
+
+Script ::= Item*
+
+private Item ::= Declaration
+               | Statement
+               | Comment
+               | SEMICOLON
+
+// -------------------------------------------------------------------------------------------------
+// Declarations
+// -------------------------------------------------------------------------------------------------
+
+private Declaration ::= TypedefDecl
+                      | ClassDecl
+                      | StructDecl
+                      | EventDecl
+                      | DelegateDecl
+                      | MixinDecl
+                      | FunctionDecl
+                      | VariableDecl
+                      | Comment
+
+Comment ::= COMMENT
+
+TypedefDecl ::= 'typedef' PrimitiveType identifier SEMICOLON
+
+ClassDecl ::= UClassDecl? CLASS identifier InheritanceList? LBRACE ClassMember* RBRACE SEMICOLON?
+StructDecl ::= UStructDecl? STRUCT identifier LBRACE StructMember* RBRACE SEMICOLON?
+
+private InheritanceList ::= COLON TypeRef (COMMA TypeRef)*
+
+private ClassMember ::= FunctionDecl | VariableDecl | Comment
+private StructMember ::= FunctionDecl | VariableDecl | Comment
+
+EventDecl ::= 'event' FunctionDecl
+DelegateDecl ::= 'delegate' FunctionDecl
+MixinDecl ::= 'mixin' FunctionDecl
+
+UFunctionDecl ::= 'UFUNCTION' MetaArgList
+UPropertyDecl ::= 'UPROPERTY' MetaArgList
+UClassDecl ::= 'UCLASS' MetaArgList
+UStructDecl ::= 'USTRUCT' MetaArgList
+
+private MetaArgList ::= LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
+private MetaArg ::= identifier | identifier EQ LPAREN Expr RPAREN
+
+FunctionDecl ::= UFunctionDecl?
+                 FunctionLocation?
+                 AccessSpecifier?
+                 (TypeRef AND? | '~')?
+                 identifier
+                 ParameterList
+                 CONST?
+                 FuncAttr?
+                 (SEMICOLON | CompoundStatement)
+
+private FunctionLocation ::= ('shared' | 'external')+
+private AccessSpecifier ::= 'private' | 'protected'
+private FuncAttr ::= 'override' | 'final' | 'explicit' | 'property'
+
+ParameterList ::= LPAREN [ 'void' | ParameterDecl (COMMA ParameterDecl)* COMMA? ] RPAREN
+ParameterDecl ::= DeclarationSpecifier identifier [ EQ Expr ]
+
+private DeclarationSpecifier ::= TypeRef TypeMod?
+private TypeMod ::= AND (IN | OUT | 'inout')?
+
+TypeRef ::= CONST?
+            ScopeRef?
+            DataType
+            TypeArgument*
+            ( LBRACK RBRACK | '@' CONST? )*
+
+private DataType ::= identifier | PrimitiveType | '?' | 'auto'
+private PrimitiveType ::= 'void'
+                        | 'int' | 'int8' | 'int16' | 'int32' | 'int64'
+                        | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'
+                        | 'float' | 'double' | 'bool'
+
+ScopeRef ::= (identifier (COLONCOLON identifier)*)? TypeArgument? COLONCOLON
+TypeArgument ::= LT TypeRef (COMMA TypeRef)* GT
+
+VariableDecl ::= UPropertyDecl?
+                 AccessSpecifier?
+                 TypeRef
+                 TypeMod?
+                 VariableItem (COMMA VariableItem)*
+                 SEMICOLON
+
+private VariableItem ::= identifier ( EQ Expr | ArgList )?
+
+ArgList ::= LPAREN [ Argument (COMMA Argument)* ] RPAREN
+Argument ::= [ identifier COLON ] Expr
+
+// -------------------------------------------------------------------------------------------------
+// Statements
+// -------------------------------------------------------------------------------------------------
+
+Statement ::= CaseStatement | NonCaseStatement
+
+private NonCaseStatement ::= CompoundStatement
+                           | ExpressionStatement
+                           | IfStatement
+                           | SwitchStatement
+                           | DoStatement
+                           | WhileStatement
+                           | ForStatement
+                           | ForeachStatement
+                           | ReturnStatement
+                           | BreakStatement
+                           | ContinueStatement
+                           | VariableDecl
+
+CompoundStatement ::= LBRACE BlockItem* RBRACE
+private BlockItem ::= Declaration | Statement | Comment
+
+BreakStatement ::= BREAK SEMICOLON
+ContinueStatement ::= CONTINUE SEMICOLON
+ExpressionStatement ::= Expr SEMICOLON
+ReturnStatement ::= RETURN Expr? SEMICOLON
+
+IfStatement ::= IF ParenthesizedExpr Statement ElseClause?
+ElseClause ::= ELSE Statement
+
+SwitchStatement ::= 'switch' ParenthesizedExpr CompoundStatement
+
+CaseStatement ::= ( 'case' Expr | 'default' ) COLON (NonCaseStatement | VariableDecl)*
+
+WhileStatement ::= WHILE ParenthesizedExpr Statement
+DoStatement ::= 'do' Statement WHILE ParenthesizedExpr SEMICOLON
+
+ForStatement ::= FOR LPAREN ForHeader RPAREN Statement
+private ForHeader ::= ( VariableDecl | Expr? SEMICOLON ) Expr? SEMICOLON Expr?
+
+ForeachStatement ::= FOR LPAREN ForeachVarDecl COLON Expr RPAREN Statement
+private ForeachVarDecl ::= DeclarationSpecifier identifier
+
+ParenthesizedExpr ::= LPAREN Expr RPAREN
+
+// -------------------------------------------------------------------------------------------------
+// Expressions
+// -------------------------------------------------------------------------------------------------
+
+// Shared expression supertype. Keep this fake wrapper so all *Expr PSI types
+// inherit a common root and callers can access the normalized top-level node.
+Expr ::= CommaExpr {
+  methods=[
+    rootExpr="/CommaExpr"
+  ]
+}
+
+CommaExpr ::= AssignmentExpr (COMMA AssignmentExpr)*
+
+AssignmentExpr ::= ConditionalExpr (AssignmentOp AssignmentExpr)? { pin=2 }
+private AssignmentOp ::= EQ | MULEQ | '**=' | DIVEQ | REMEQ | PLUSEQ | MINUSEQ | '<<=' | '>>=' | '>>>=' | ANDEQ | XOREQ | OREQ
+
+ConditionalExpr ::= LogicalOrExpr ('?' Expr? COLON Expr)?
+
+LogicalOrExpr ::= LogicalAndExpr (('||' | 'or') LogicalAndExpr)*
+LogicalAndExpr ::= InclusiveOrExpr (('&&' | 'and') InclusiveOrExpr)*
+InclusiveOrExpr ::= ExclusiveOrExpr (OR ExclusiveOrExpr)*
+ExclusiveOrExpr ::= BitwiseAndExpr ((XOR | 'xor') BitwiseAndExpr)*
+BitwiseAndExpr ::= EqualityExpr (AND EqualityExpr)*
+EqualityExpr ::= RelationalExpr ((EQEQ | EXCLEQ) RelationalExpr)*
+RelationalExpr ::= ShiftExpr ((GT | '>=' | '<=' | LT | 'is' | '!is') ShiftExpr)*
+ShiftExpr ::= AddExpr (('<<' | '>>' | '>>>') AddExpr)*
+AddExpr ::= MultiplyExpr ((PLUS | MINUS) MultiplyExpr)*
+MultiplyExpr ::= UnaryExpr ((MUL | '**' | DIV | REM) UnaryExpr)*
+
+UnaryExpr ::= PrefixOp UnaryExpr
+            | PrefixUpdateExpr
+            | CastExpr
+            | PostfixExpr
+
+private PrefixOp ::= '@' | 'not' | EXCL | '~' | MINUS | PLUS
+private PrefixUpdateExpr ::= ('--' | '++') UnaryExpr
+
+CastExpr ::= LPAREN TypeRef RPAREN UnaryExpr
+           | PrimitiveType LPAREN Expr RPAREN
+
+PostfixExpr ::= PrimaryExpr PostfixPart* PostfixUpdate?
+
+private PostfixPart ::= ScopeSuffix
+                      | FieldSuffix
+                      | SubscriptSuffix
+                      | CallSuffix
+
+private ScopeSuffix ::= COLONCOLON identifier
+private FieldSuffix ::= DOT identifier
+private SubscriptSuffix ::= LBRACK Expr RBRACK
+private CallSuffix ::= TypeArgument? ArgList
+private PostfixUpdate ::= '--' | '++'
+
+PrimaryExpr ::= VariableAccessExpr
+              | InitListExpr
+              | StringConcatExpr
+              | number_literal
+              | string_literal
+              | bool_literal
+              | null_literal
+              | ParenthesizedExpr
+
+VariableAccessExpr ::= ScopeRef? identifier
+
+InitListExpr ::= [TypeRef EQ] LBRACE [ Expr (COMMA Expr)* ] RBRACE
+
+StringConcatExpr ::= string_literal string_literal+
+
+private string_literal ::= PrefixedStringLiteral
+                         | DoubleQuotedString
+                         | SingleQuotedString
+                         | MultilineString
+
+private PrefixedStringLiteral ::= identifier (DoubleQuotedString | SingleQuotedString | MultilineString)
+private DoubleQuotedString ::= STRING_LITERAL
+private SingleQuotedString ::= STRING_LITERAL
+private MultilineString ::= STRING_LITERAL
+
+private number_literal ::= NUMBER_LITERAL
+private bool_literal ::= BOOL_LITERAL
+private null_literal ::= 'nullptr'
+
+private identifier ::= IDENTIFIER
