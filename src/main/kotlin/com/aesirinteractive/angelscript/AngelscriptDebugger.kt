@@ -178,32 +178,150 @@ class AngelscriptBreakpointHandler(
 ) : XBreakpointHandler<XLineBreakpoint<AngelscriptBreakpointProperties>>(
     AngelscriptBreakpointType::class.java
 ) {
-    private val breakpoints = mutableListOf<XLineBreakpoint<AngelscriptBreakpointProperties>>()
+    private val breakpointIds = LinkedHashMap<XLineBreakpoint<AngelscriptBreakpointProperties>, Int>()
     private var nextId = 1
+    // Paths with a pending deferred flush; deduplicated so only one invokeLater fires per path per EDT cycle
+    private val pendingFlush = HashSet<String>()
+    // Paths whose files have unsaved changes; breakpoints are not sent to the server while dirty
+    internal val dirtyPaths = HashSet<String>()
+
+    private fun dbgLog(msg: String) {
+        if (AngelscriptSettings.getInstance().logDebugMessages) {
+            process.session.consoleView?.print("[dbg] $msg\n",
+                com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+        }
+    }
+
+    private fun scheduleFlush(path: String, module: String) {
+        val shouldSchedule = synchronized(pendingFlush) { pendingFlush.add(path) }
+        if (shouldSchedule) {
+            ApplicationManager.getApplication().invokeLater {
+                synchronized(pendingFlush) { pendingFlush.remove(path) }
+                flushFile(path, module)
+            }
+        }
+    }
+
+    private fun flushFile(path: String, module: String) {
+        val bpsForFile = synchronized(breakpointIds) {
+            breakpointIds.entries.filter { it.key.fileUrl.removePrefix("file://") == path }.toList()
+        }
+        val isDirty = synchronized(dirtyPaths) { path in dirtyPaths }
+        dbgLog("flushFile path=$path count=${bpsForFile.size}, dirty=$isDirty")
+        process.client.sendClearBreakpoints(path, module)
+        if (!isDirty) {
+            for ((bp, id) in bpsForFile) {
+                ApplicationManager.getApplication().invokeLater {
+                    process.session.setBreakpointVerified(bp)
+                }
+                process.client.sendSetBreakpoint(id, path, bp.line + 1, module)
+            }
+        }
+    }
+
+    fun markFileDirty(path: String) {
+        synchronized(dirtyPaths) { dirtyPaths.add(path) }
+        val module = process.moduleNameForPath(path)
+        val bpsForFile = synchronized(breakpointIds) {
+            breakpointIds.entries.filter { it.key.fileUrl.removePrefix("file://") == path }.toList()
+        }
+        dbgLog("markFileDirty path=$path — invalidating ${bpsForFile.size} breakpoint(s)")
+        if (bpsForFile.isNotEmpty()) {
+            process.client.sendClearBreakpoints(path, module)
+            ApplicationManager.getApplication().invokeLater {
+                for ((bp, _) in bpsForFile) {
+                    process.session.setBreakpointInvalid(bp, "File has unsaved changes")
+                }
+            }
+        }
+    }
+
+    fun syncFile(path: String) {
+        val module = process.moduleNameForPath(path)
+        val bpsForFile = synchronized(breakpointIds) {
+            breakpointIds.entries.filter { it.key.fileUrl.removePrefix("file://") == path }.toList()
+        }
+        dbgLog("syncFile path=$path count=${bpsForFile.size}")
+        val toSend = synchronized(breakpointIds) {
+            bpsForFile.map { (bp, _) ->
+                val newId = nextId++
+                breakpointIds[bp] = newId
+                Pair(bp, newId)
+            }
+        }
+        process.client.sendClearBreakpoints(path, module)
+        for ((bp, id) in toSend) {
+            ApplicationManager.getApplication().invokeLater {
+                process.session.setBreakpointVerified(bp)
+            }
+            process.client.sendSetBreakpoint(id, path, bp.line + 1, module)
+        }
+    }
 
     override fun registerBreakpoint(bp: XLineBreakpoint<AngelscriptBreakpointProperties>) {
-        breakpoints.add(bp)
-        val id = nextId++
         val path = bp.fileUrl.removePrefix("file://")
         val line = bp.line + 1 // XDebugger is 0-based, Unreal expects 1-based
         val module = process.moduleNameForPath(path)
-        process.client.sendSetBreakpoint(id, path, line, module)
+        // Reuse the ID of any existing breakpoint at the same line (VS Code pattern),
+        // otherwise assign a new one.
+        val id = synchronized(breakpointIds) {
+            val existing = breakpointIds.entries
+                .find { it.key.fileUrl.removePrefix("file://") == path && it.key.line + 1 == line }
+            val resolvedId = existing?.value ?: nextId++
+            breakpointIds[bp] = resolvedId
+            resolvedId
+        }
+        val isDirty = synchronized(dirtyPaths) { path in dirtyPaths }
+        dbgLog("register id=$id path=$path line=$line dirty=$isDirty")
+        if (isDirty) {
+            ApplicationManager.getApplication().invokeLater {
+                process.session.setBreakpointInvalid(bp, "File has unsaved changes")
+            }
+        } else {
+            ApplicationManager.getApplication().invokeLater {
+                process.session.setBreakpointVerified(bp)
+            }
+            scheduleFlush(path, module)
+        }
     }
 
     override fun unregisterBreakpoint(bp: XLineBreakpoint<AngelscriptBreakpointProperties>, temporary: Boolean) {
-        breakpoints.remove(bp)
         val path = bp.fileUrl.removePrefix("file://")
+        val line = bp.line + 1
         val module = process.moduleNameForPath(path)
-        process.client.sendClearBreakpoints(path, module)
+        val id = synchronized(breakpointIds) { breakpointIds.remove(bp) }
+        val isDirty = synchronized(dirtyPaths) { path in dirtyPaths }
+        dbgLog("unregister id=$id path=$path line=$line temporary=$temporary dirty=$isDirty")
+        scheduleFlush(path, module)
     }
 
     fun syncAllBreakpoints() {
-        nextId = 1
-        for (bp in breakpoints) {
-            val path = bp.fileUrl.removePrefix("file://")
-            val line = bp.line + 1
+        val snapshot = synchronized(breakpointIds) {
+            nextId = 1
+            breakpointIds.entries.map { (bp, _) ->
+                val newId = nextId++
+                breakpointIds[bp] = newId
+                Triple(bp, newId, bp.fileUrl.removePrefix("file://"))
+            }
+        }
+        dbgLog("syncAllBreakpoints count=${snapshot.size}")
+        // Clear per file first (matches VS Code launchRequest pattern), then set each
+        val byFile = snapshot.groupBy { (_, _, path) -> path }
+        for ((path, entries) in byFile) {
             val module = process.moduleNameForPath(path)
-            process.client.sendSetBreakpoint(nextId++, path, line, module)
+            process.client.sendClearBreakpoints(path, module)
+            for ((bp, newId, _) in entries) {
+                ApplicationManager.getApplication().invokeLater {
+                    process.session.setBreakpointVerified(bp)
+                }
+                process.client.sendSetBreakpoint(newId, path, bp.line + 1, module)
+            }
+        }
+    }
+
+    fun findBreakpointById(id: Int): XLineBreakpoint<AngelscriptBreakpointProperties>? {
+    return synchronized(breakpointIds) {
+            breakpointIds.entries.find { it.value == id }?.key
         }
     }
 }
@@ -528,7 +646,7 @@ class AngelscriptProcess(
     // Evaluator of the currently selected frame; updated on positionReached
     @Volatile var activeEvaluator: AngelscriptEvaluator? = null
 
-    private var breakpointHandler: AngelscriptBreakpointHandler? = null
+    private val breakpointHandler = AngelscriptBreakpointHandler(this)
 
     fun requestVariables(node: XCompositeNode, path: String, last: Boolean) {
         synchronized(pendingVariableRequests) {
@@ -583,6 +701,53 @@ class AngelscriptProcess(
             activeEvaluator?.receiveResult(name, value, type, hasMembers)
         }
 
+        client.onScriptRecompiled = {
+            val recompiledPaths = synchronized(breakpointHandler.dirtyPaths) {
+                breakpointHandler.dirtyPaths.toList().also { breakpointHandler.dirtyPaths.clear() }
+            }
+            if (recompiledPaths.isEmpty()) {
+                breakpointHandler.syncAllBreakpoints()
+            } else {
+                for (path in recompiledPaths) {
+                    breakpointHandler.syncFile(path)
+                }
+            }
+        }
+
+        client.onBreakpointAdjusted = handler@{ id, path, adjustedLine ->
+            val bp = breakpointHandler.findBreakpointById(id) ?: return@handler
+            ApplicationManager.getApplication().invokeLater {
+                when {
+                    adjustedLine == -1 -> {
+                        session.setBreakpointInvalid(bp, "No executable code at this line")
+                    }
+                    adjustedLine != bp.line + 1 -> {
+                        // Server placed the breakpoint at a different line (script not yet recompiled).
+                        // Check if another breakpoint already exists at the server's line.
+                        val bpType = bp.type as? AngelscriptBreakpointType ?: return@invokeLater
+                        val vFile = LocalFileSystem.getInstance().findFileByPath(path)
+                            ?: return@invokeLater
+                        val serverLine = adjustedLine - 1 // server is 1-based, IDE is 0-based
+                        val mgr = XDebuggerManager.getInstance(session.project).breakpointManager
+                        val existing = mgr.findBreakpointsAtLine(bpType, vFile, serverLine)
+                        if (existing.any { it !== bp }) {
+                            // Overlap — this bp is redundant, mark it invalid
+                            session.setBreakpointInvalid(bp, "Overlaps existing breakpoint at line $adjustedLine")
+                        } else {
+                            // Move the IDE marker to the server's confirmed line.
+                            // removeBreakpoint + addLineBreakpoint triggers unregister+register
+                            // which will flush a new SetBreakpoint at the confirmed line.
+                            mgr.removeBreakpoint(bp)
+                            mgr.addLineBreakpoint(bpType, bp.fileUrl, serverLine, bp.properties)
+                        }
+                    }
+                    else -> {
+                        session.setBreakpointVerified(bp)
+                    }
+                }
+            }
+        }
+
         session.addSessionListener(object : com.intellij.xdebugger.XDebugSessionListener {
             override fun stackFrameChanged() {
                 val frame = session.currentStackFrame
@@ -609,6 +774,13 @@ class AngelscriptProcess(
         val settings = AngelscriptSettings.getInstance()
         val autoReconnect = settings.autoReconnectDebugger
         val reconnectDelayMs = settings.debugReconnectDelayMs
+
+        client.onMessageLog = { direction, type ->
+            if (AngelscriptSettings.getInstance().logDebugMessages) {
+                session.consoleView?.print("[dbg] $direction $type\n",
+                    com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+            }
+        }
 
         client.onClosed = {
             if (autoReconnect) {
@@ -642,6 +814,22 @@ class AngelscriptProcess(
 //            )
 //        }
 
+        // Invalidate breakpoints when an .as file is modified (before recompile)
+        EditorFactory.getInstance().eventMulticaster
+            .addDocumentListener(object : com.intellij.openapi.editor.event.DocumentListener {
+                override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
+                    val vFile = FileDocumentManager.getInstance().getFile(event.document) ?: return
+                    if (vFile.extension != "as") return
+                    val path = vFile.path
+                    val alreadyDirty = synchronized(breakpointHandler.dirtyPaths) {
+                        path in breakpointHandler.dirtyPaths
+                    }
+                    if (!alreadyDirty) {
+                        breakpointHandler.markFileDirty(path)
+                    }
+                }
+            })
+
         startConnecting(autoReconnect, reconnectDelayMs)
     }
 
@@ -655,7 +843,7 @@ class AngelscriptProcess(
                 consoleView?.print("Connected to Unreal AngelScript debug server at $host:$port\n",
                     com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
                 client.sendStartDebugging(2)
-                breakpointHandler?.syncAllBreakpoints()
+                breakpointHandler.syncAllBreakpoints()
             },
             onRetry = { attempt ->
                 if (autoReconnect) {
@@ -681,9 +869,7 @@ class AngelscriptProcess(
     override fun checkCanInitBreakpoints(): Boolean = true
 
     override fun getBreakpointHandlers(): Array<out XBreakpointHandler<*>> {
-        val handler = AngelscriptBreakpointHandler(this)
-        breakpointHandler = handler
-        return arrayOf(handler)
+        return arrayOf(breakpointHandler)
     }
 
     override fun getEditorsProvider(): XDebuggerEditorsProvider {

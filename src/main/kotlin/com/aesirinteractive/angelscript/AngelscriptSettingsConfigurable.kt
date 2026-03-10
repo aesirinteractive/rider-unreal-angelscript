@@ -23,6 +23,7 @@ class AngelscriptSettingsConfigurable : Configurable {
     private val debugPortField = JBTextField()
     private val autoReconnectCheckBox = JBCheckBox("Auto-reconnect debugger when connection is lost (unlimited retries)")
     private val reconnectDelayField = JBTextField()
+    private val logDebugMessagesCheckBox = JBCheckBox("Log debug protocol messages to console")
     private val clangFormatPathKindCombo = ComboBox(ClangFormatPathKind.entries.toTypedArray())
     private val clangFormatPathLabel = JBLabel("clang-format path:")
     private val clangFormatPathField = JBTextField()
@@ -44,6 +45,7 @@ class AngelscriptSettingsConfigurable : Configurable {
             .addLabeledComponent(JBLabel("Debug server port:"), debugPortField, 1, false)
             .addComponent(autoReconnectCheckBox, 1)
             .addLabeledComponent(JBLabel("Reconnect delay (ms):"), reconnectDelayField, 1, false)
+            .addComponent(logDebugMessagesCheckBox, 1)
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
@@ -89,9 +91,9 @@ class AngelscriptSettingsConfigurable : Configurable {
             || clangFormatPathField.text != settings.clangFormatPath
             || debugHostField.text != settings.debugHost
             || debugPortField.text != settings.debugPort.toString()
-            || autoAttachCheckBox.isSelected != settings.autoAttachDebugger
             || autoReconnectCheckBox.isSelected != settings.autoReconnectDebugger
             || reconnectDelayField.text.toLongOrNull() != settings.debugReconnectDelayMs
+            || logDebugMessagesCheckBox.isSelected != settings.logDebugMessages
     }
 
     override fun apply() {
@@ -106,9 +108,9 @@ class AngelscriptSettingsConfigurable : Configurable {
         AngelscriptExternalFormatter.clearClangFormatCache()
         settings.debugHost = debugHostField.text
         settings.debugPort = debugPortField.text.toIntOrNull() ?: 27099
-        settings.autoAttachDebugger = autoAttachCheckBox.isSelected
         settings.autoReconnectDebugger = autoReconnectCheckBox.isSelected
         settings.debugReconnectDelayMs = reconnectDelayField.text.toLongOrNull()?.coerceAtLeast(100L) ?: 2000L
+        settings.logDebugMessages = logDebugMessagesCheckBox.isSelected
     }
 
     override fun reset() {
@@ -122,9 +124,9 @@ class AngelscriptSettingsConfigurable : Configurable {
         clangFormatPathField.text = settings.clangFormatPath
         debugHostField.text = settings.debugHost
         debugPortField.text = settings.debugPort.toString()
-        autoAttachCheckBox.isSelected = settings.autoAttachDebugger
         autoReconnectCheckBox.isSelected = settings.autoReconnectDebugger
         reconnectDelayField.text = settings.debugReconnectDelayMs.toString()
+        logDebugMessagesCheckBox.isSelected = settings.logDebugMessages
         updateLspPathVisibility()
         updateClangFormatPathVisibility()
     }

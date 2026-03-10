@@ -47,7 +47,8 @@ enum class MessageType(val id: Int) {
     ReplaceAssetDefinition(35),
     SetDataBreakpoints(36),
     ClearDataBreakpoints(37),
-    StopPIE(38);
+    ScriptRecompiled(38),
+    StopPIE(39);
 
     companion object {
         fun fromId(id: Int): MessageType? = entries.find { it.id == id }
@@ -116,6 +117,9 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
     var onBreakFilters: ((filters: List<BreakFilter>) -> Unit)? = null
     var onEvaluate: ((name: String, value: String, type: String, hasMembers: Boolean) -> Unit)? = null
     var onClosed: (() -> Unit)? = null
+    var onBreakpointAdjusted: ((id: Int, path: String, adjustedLine: Int) -> Unit)? = null
+    var onScriptRecompiled: (() -> Unit)? = null
+    var onMessageLog: ((direction: String, type: String) -> Unit)? = null
 
     @Volatile var serverVersion: Int = 0
     @Volatile var isConnected: Boolean = false
@@ -230,7 +234,10 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
     }
 
     private fun dispatchMessage(msg: IncomingMessage) {
-        when (MessageType.fromId(msg.type)) {
+        val msgType = MessageType.fromId(msg.type)
+        val typeName = msgType?.name ?: "Unknown(${msg.type})"
+        if (msgType != MessageType.SetBreakpoint) onMessageLog?.invoke("<--", typeName)
+        when (msgType) {
             MessageType.HasStopped -> {
                 val reason = msg.readString()
                 val description = msg.readString()
@@ -289,6 +296,16 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
                 val hasMembers = msg.readBool()
                 onEvaluate?.invoke(name, value, type, hasMembers)
             }
+            MessageType.SetBreakpoint -> {
+                val path = msg.readString()
+                val line = msg.readInt()
+                val id   = msg.readInt()
+                onMessageLog?.invoke("<--", "SetBreakpoint id=$id path=$path line=$line")
+                onBreakpointAdjusted?.invoke(id, path, line)
+            }
+            MessageType.ScriptRecompiled -> {
+                onScriptRecompiled?.invoke()
+            }
             else -> { /* ignore unknown/unhandled messages */ }
         }
     }
@@ -323,7 +340,12 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
         return header.array() + payload
     }
 
-    private fun send(data: ByteArray) {
+    private fun send(data: ByteArray, logDetail: String? = null) {
+        if (data.size >= 5) {
+            val typeId = data[4].toInt() and 0xFF
+            val typeName = MessageType.fromId(typeId)?.name ?: "Unknown($typeId)"
+            onMessageLog?.invoke("-->", if (logDetail != null) "$typeName $logDetail" else typeName)
+        }
         synchronized(sendLock) {
             try {
                 outputStream?.write(data)
@@ -367,12 +389,12 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
 
     fun sendSetBreakpoint(id: Int, path: String, line: Int, moduleName: String) {
         val payload = writeString(path) + writeInt(line) + writeInt(id) + writeString(moduleName)
-        send(buildMessage(MessageType.SetBreakpoint, payload))
+        send(buildMessage(MessageType.SetBreakpoint, payload), "id=$id path=$path line=$line")
     }
 
     fun sendClearBreakpoints(path: String, moduleName: String) {
         val payload = writeString(path) + writeString(moduleName)
-        send(buildMessage(MessageType.ClearBreakpoints, payload))
+        send(buildMessage(MessageType.ClearBreakpoints, payload), "path=$path")
     }
 
     fun sendBreakOptions(filters: List<String>) {

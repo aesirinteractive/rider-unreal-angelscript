@@ -24,7 +24,8 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var autoReconnectDebugger: Boolean = true,
         var debugReconnectDelayMs: Long = 10000L,
         var clangFormatPathKind: ClangFormatPathKind = ClangFormatPathKind.Bundled,
-        var clangFormatPath: String = ""
+        var clangFormatPath: String = "",
+        var logDebugMessages: Boolean = false
     )
 
     private var state = State()
@@ -78,6 +79,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var clangFormatPath: String
         get() = state.clangFormatPath
         set(value) { state.clangFormatPath = value }
+
+    var logDebugMessages: Boolean
+        get() = state.logDebugMessages
+        set(value) { state.logDebugMessages = value }
 
     fun parsedFileExtensions(): Set<String> =
         fileExtensions.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
