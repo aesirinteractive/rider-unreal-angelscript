@@ -11,9 +11,9 @@ import java.util.concurrent.ConcurrentHashMap
 @Service(Service.Level.PROJECT)
 class AngelscriptInlineValuesService(private val project: Project) {
 
-    // file → (0-based line → ordered list of "name = value" entries)
-    // Multiple variables on the same line (e.g. parameters, multi-declarators) each append an entry.
-    private val values = ConcurrentHashMap<VirtualFile, ConcurrentHashMap<Int, MutableList<String>>>()
+    // file → (0-based line → ordered set of "name = value" entries)
+    // LinkedHashSet preserves insertion order and silently ignores duplicate strings.
+    private val values = ConcurrentHashMap<VirtualFile, ConcurrentHashMap<Int, LinkedHashSet<String>>>()
 
     companion object {
         fun getInstance(project: Project): AngelscriptInlineValuesService = project.service()
@@ -22,8 +22,8 @@ class AngelscriptInlineValuesService(private val project: Project) {
     /** Called from the Unreal reader thread when an inline evaluation result arrives. */
     fun putValue(file: VirtualFile, line: Int, text: String) {
         val lineMap = values.getOrPut(file) { ConcurrentHashMap() }
-        val list = lineMap.computeIfAbsent(line) { mutableListOf() }
-        synchronized(list) { list.add(text) }
+        val set = lineMap.computeIfAbsent(line) { LinkedHashSet() }
+        synchronized(set) { set.add(text) }   // no-op if already present
         repaintEditors()
     }
 
@@ -35,8 +35,8 @@ class AngelscriptInlineValuesService(private val project: Project) {
 
     /** Called synchronously from the EDT paint thread by AngelscriptEditorLinePainter. */
     fun getLineText(file: VirtualFile, line: Int): String? {
-        val list = values[file]?.get(line) ?: return null
-        return synchronized(list) { if (list.isEmpty()) null else list.joinToString(", ") }
+        val set = values[file]?.get(line) ?: return null
+        return synchronized(set) { if (set.isEmpty()) null else set.joinToString(", ") }
     }
 
     private fun repaintEditors() {

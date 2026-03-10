@@ -21,11 +21,14 @@ public interface AngelscriptTypes {
   IElementType COMMENT = new AngelscriptElementType("COMMENT");
   IElementType COMPOUND_STATEMENT = new AngelscriptElementType("COMPOUND_STATEMENT");
   IElementType CONDITIONAL_EXPR = new AngelscriptElementType("CONDITIONAL_EXPR");
+  IElementType CONSTRUCTOR_DECL = new AngelscriptElementType("CONSTRUCTOR_DECL");
   IElementType CONTINUE_STATEMENT = new AngelscriptElementType("CONTINUE_STATEMENT");
   IElementType DEFAULT_VALUE_DECL = new AngelscriptElementType("DEFAULT_VALUE_DECL");
   IElementType DELEGATE_DECL = new AngelscriptElementType("DELEGATE_DECL");
   IElementType DO_STATEMENT = new AngelscriptElementType("DO_STATEMENT");
   IElementType ELSE_CLAUSE = new AngelscriptElementType("ELSE_CLAUSE");
+  IElementType ENUM_DECL = new AngelscriptElementType("ENUM_DECL");
+  IElementType ENUM_VARIANT = new AngelscriptElementType("ENUM_VARIANT");
   IElementType EQUALITY_EXPR = new AngelscriptElementType("EQUALITY_EXPR");
   IElementType EVENT_DECL = new AngelscriptElementType("EVENT_DECL");
   IElementType EXCLUSIVE_OR_EXPR = new AngelscriptElementType("EXCLUSIVE_OR_EXPR");
@@ -34,6 +37,8 @@ public interface AngelscriptTypes {
   IElementType FOREACH_STATEMENT = new AngelscriptElementType("FOREACH_STATEMENT");
   IElementType FOR_STATEMENT = new AngelscriptElementType("FOR_STATEMENT");
   IElementType FUNCTION_DECL = new AngelscriptElementType("FUNCTION_DECL");
+  IElementType IF_DEF_BLOCK = new AngelscriptElementType("IF_DEF_BLOCK");
+  IElementType IF_DEF_BRANCH = new AngelscriptElementType("IF_DEF_BRANCH");
   IElementType IF_STATEMENT = new AngelscriptElementType("IF_STATEMENT");
   IElementType INCLUSIVE_OR_EXPR = new AngelscriptElementType("INCLUSIVE_OR_EXPR");
   IElementType INIT_LIST_EXPR = new AngelscriptElementType("INIT_LIST_EXPR");
@@ -41,10 +46,12 @@ public interface AngelscriptTypes {
   IElementType LOGICAL_OR_EXPR = new AngelscriptElementType("LOGICAL_OR_EXPR");
   IElementType MIXIN_DECL = new AngelscriptElementType("MIXIN_DECL");
   IElementType MULTIPLY_EXPR = new AngelscriptElementType("MULTIPLY_EXPR");
+  IElementType NAMESPACE_DECL = new AngelscriptElementType("NAMESPACE_DECL");
   IElementType PARAMETER_DECL = new AngelscriptElementType("PARAMETER_DECL");
   IElementType PARAMETER_LIST = new AngelscriptElementType("PARAMETER_LIST");
   IElementType PARENTHESIZED_EXPR = new AngelscriptElementType("PARENTHESIZED_EXPR");
   IElementType POSTFIX_EXPR = new AngelscriptElementType("POSTFIX_EXPR");
+  IElementType PP_DEFINE_DIRECTIVE = new AngelscriptElementType("PP_DEFINE_DIRECTIVE");
   IElementType PRIMARY_EXPR = new AngelscriptElementType("PRIMARY_EXPR");
   IElementType RELATIONAL_EXPR = new AngelscriptElementType("RELATIONAL_EXPR");
   IElementType RETURN_STATEMENT = new AngelscriptElementType("RETURN_STATEMENT");
@@ -59,6 +66,7 @@ public interface AngelscriptTypes {
   IElementType TYPE_REF = new AngelscriptElementType("TYPE_REF");
   IElementType UNARY_EXPR = new AngelscriptElementType("UNARY_EXPR");
   IElementType U_CLASS_DECL = new AngelscriptElementType("U_CLASS_DECL");
+  IElementType U_ENUM_DECL = new AngelscriptElementType("U_ENUM_DECL");
   IElementType U_FUNCTION_DECL = new AngelscriptElementType("U_FUNCTION_DECL");
   IElementType U_PROPERTY_DECL = new AngelscriptElementType("U_PROPERTY_DECL");
   IElementType U_STRUCT_DECL = new AngelscriptElementType("U_STRUCT_DECL");
@@ -127,6 +135,7 @@ public interface AngelscriptTypes {
   IElementType MIXIN_KW = new AngelscriptTokenType("mixin");
   IElementType MUL = new AngelscriptTokenType("*");
   IElementType MULEQ = new AngelscriptTokenType("*=");
+  IElementType NAMESPACE_KW = new AngelscriptTokenType("namespace");
   IElementType NOT_KW = new AngelscriptTokenType("not");
   IElementType NULLPTR_KW = new AngelscriptTokenType("nullptr");
   IElementType NUMBER_LITERAL = new AngelscriptTokenType("NUMBER_LITERAL");
@@ -134,13 +143,18 @@ public interface AngelscriptTypes {
   IElementType OREQ = new AngelscriptTokenType("|=");
   IElementType OROR = new AngelscriptTokenType("||");
   IElementType OR_KW = new AngelscriptTokenType("or");
-  IElementType OUT = new AngelscriptTokenType("OUT");
+  IElementType OUT = new AngelscriptTokenType("out");
   IElementType OVERRIDE_KW = new AngelscriptTokenType("override");
   IElementType PLUS = new AngelscriptTokenType("+");
   IElementType PLUSEQ = new AngelscriptTokenType("+=");
   IElementType PLUSPLUS = new AngelscriptTokenType("++");
   IElementType POWER = new AngelscriptTokenType("**");
   IElementType POWEREQ = new AngelscriptTokenType("**=");
+  IElementType PP_DEFINE = new AngelscriptTokenType("PP_DEFINE");
+  IElementType PP_ELIF = new AngelscriptTokenType("PP_ELIF");
+  IElementType PP_ELSE = new AngelscriptTokenType("PP_ELSE");
+  IElementType PP_ENDIF = new AngelscriptTokenType("PP_ENDIF");
+  IElementType PP_IF = new AngelscriptTokenType("PP_IF");
   IElementType PRIVATE_KW = new AngelscriptTokenType("private");
   IElementType PROPERTY_KW = new AngelscriptTokenType("property");
   IElementType PROTECTED_KW = new AngelscriptTokenType("protected");
@@ -165,6 +179,7 @@ public interface AngelscriptTypes {
   IElementType TILDE = new AngelscriptTokenType("~");
   IElementType TYPEDEF_KW = new AngelscriptTokenType("typedef");
   IElementType UCLASS_KW = new AngelscriptTokenType("UCLASS");
+  IElementType UENUM_KW = new AngelscriptTokenType("UENUM");
   IElementType UFUNCTION_KW = new AngelscriptTokenType("UFUNCTION");
   IElementType UINT16_KW = new AngelscriptTokenType("uint16");
   IElementType UINT32_KW = new AngelscriptTokenType("uint32");
@@ -221,6 +236,9 @@ public interface AngelscriptTypes {
       else if (type == CONDITIONAL_EXPR) {
         return new AngelscriptConditionalExprImpl(node);
       }
+      else if (type == CONSTRUCTOR_DECL) {
+        return new AngelscriptConstructorDeclImpl(node);
+      }
       else if (type == CONTINUE_STATEMENT) {
         return new AngelscriptContinueStatementImpl(node);
       }
@@ -235,6 +253,12 @@ public interface AngelscriptTypes {
       }
       else if (type == ELSE_CLAUSE) {
         return new AngelscriptElseClauseImpl(node);
+      }
+      else if (type == ENUM_DECL) {
+        return new AngelscriptEnumDeclImpl(node);
+      }
+      else if (type == ENUM_VARIANT) {
+        return new AngelscriptEnumVariantImpl(node);
       }
       else if (type == EQUALITY_EXPR) {
         return new AngelscriptEqualityExprImpl(node);
@@ -257,6 +281,12 @@ public interface AngelscriptTypes {
       else if (type == FUNCTION_DECL) {
         return new AngelscriptFunctionDeclImpl(node);
       }
+      else if (type == IF_DEF_BLOCK) {
+        return new AngelscriptIfDefBlockImpl(node);
+      }
+      else if (type == IF_DEF_BRANCH) {
+        return new AngelscriptIfDefBranchImpl(node);
+      }
       else if (type == IF_STATEMENT) {
         return new AngelscriptIfStatementImpl(node);
       }
@@ -278,6 +308,9 @@ public interface AngelscriptTypes {
       else if (type == MULTIPLY_EXPR) {
         return new AngelscriptMultiplyExprImpl(node);
       }
+      else if (type == NAMESPACE_DECL) {
+        return new AngelscriptNamespaceDeclImpl(node);
+      }
       else if (type == PARAMETER_DECL) {
         return new AngelscriptParameterDeclImpl(node);
       }
@@ -289,6 +322,9 @@ public interface AngelscriptTypes {
       }
       else if (type == POSTFIX_EXPR) {
         return new AngelscriptPostfixExprImpl(node);
+      }
+      else if (type == PP_DEFINE_DIRECTIVE) {
+        return new AngelscriptPPDefineDirectiveImpl(node);
       }
       else if (type == PRIMARY_EXPR) {
         return new AngelscriptPrimaryExprImpl(node);
@@ -331,6 +367,9 @@ public interface AngelscriptTypes {
       }
       else if (type == U_CLASS_DECL) {
         return new AngelscriptUClassDeclImpl(node);
+      }
+      else if (type == U_ENUM_DECL) {
+        return new AngelscriptUEnumDeclImpl(node);
       }
       else if (type == U_FUNCTION_DECL) {
         return new AngelscriptUFunctionDeclImpl(node);

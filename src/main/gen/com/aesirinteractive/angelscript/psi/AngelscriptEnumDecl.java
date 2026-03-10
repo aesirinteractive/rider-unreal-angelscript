@@ -5,12 +5,15 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface AngelscriptMixinDecl extends PsiElement {
+public interface AngelscriptEnumDecl extends PsiElement {
 
   @NotNull
-  AngelscriptFunctionDecl getFunctionDecl();
+  List<AngelscriptEnumVariant> getEnumVariantList();
 
   @Nullable
-  AngelscriptUFunctionDecl getUFunctionDecl();
+  AngelscriptUEnumDecl getUEnumDecl();
+
+  @Nullable
+  PsiElement getIdentifier();
 
 }

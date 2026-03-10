@@ -11,14 +11,14 @@ import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.aesirinteractive.angelscript.psi.*;
 
-public class AngelscriptCompoundStatementImpl extends ASTWrapperPsiElement implements AngelscriptCompoundStatement {
+public class AngelscriptIfDefBranchImpl extends ASTWrapperPsiElement implements AngelscriptIfDefBranch {
 
-  public AngelscriptCompoundStatementImpl(@NotNull ASTNode node) {
+  public AngelscriptIfDefBranchImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull AngelscriptVisitor visitor) {
-    visitor.visitCompoundStatement(this);
+    visitor.visitIfDefBranch(this);
   }
 
   @Override

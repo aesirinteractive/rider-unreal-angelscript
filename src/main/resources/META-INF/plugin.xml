@@ -64,5 +64,9 @@
         <annotator
                 language="AngelsScript"
                 implementationClass="com.aesirinteractive.angelscript.AngelscriptAnnotator"/>
+
+        <externalFormatProcessor
+                id="ANGELSCRIPT_CLANGD_FORMATTER"
+                implementation="com.aesirinteractive.angelscript.AngelscriptExternalFormatter"/>
     </extensions>
 </idea-plugin>

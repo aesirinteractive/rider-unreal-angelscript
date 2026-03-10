@@ -22,6 +22,9 @@ class AngelscriptSettingsConfigurable : Configurable {
     private val debugHostField = JBTextField()
     private val debugPortField = JBTextField()
     private val autoAttachCheckBox = JBCheckBox("Auto-attach AngelScript debugger when launching Unreal")
+    private val autoReconnectCheckBox = JBCheckBox("Auto-reconnect debugger when connection is lost (unlimited retries)")
+    private val reconnectDelayField = JBTextField()
+    private val clangFormatPathField = JBTextField()
     private var panel: JPanel? = null
 
     override fun getDisplayName() = "AngelScript"
@@ -33,10 +36,13 @@ class AngelscriptSettingsConfigurable : Configurable {
             .addLabeledComponent(lspPathLabel, lspPathField, 1, false)
             .addLabeledComponent(customCommandLineLabel, customCommandLineField, 1, false)
             .addLabeledComponent(JBLabel("File extensions (comma-separated):"), fileExtensionsField, 1, false)
+            .addLabeledComponent(JBLabel("clang-format path:"), clangFormatPathField, 1, false)
             .addSeparator()
             .addLabeledComponent(JBLabel("Debug server host:"), debugHostField, 1, false)
             .addLabeledComponent(JBLabel("Debug server port:"), debugPortField, 1, false)
             .addComponent(autoAttachCheckBox, 1)
+            .addComponent(autoReconnectCheckBox, 1)
+            .addLabeledComponent(JBLabel("Reconnect delay (ms):"), reconnectDelayField, 1, false)
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
@@ -67,9 +73,12 @@ class AngelscriptSettingsConfigurable : Configurable {
             || lspPathKindCombo.selectedItem != settings.lspPathKind
             || customCommandLineField.text != settings.customCommandLine
             || fileExtensionsField.text != settings.fileExtensions
+            || clangFormatPathField.text != settings.clangFormatPath
             || debugHostField.text != settings.debugHost
             || debugPortField.text != settings.debugPort.toString()
             || autoAttachCheckBox.isSelected != settings.autoAttachDebugger
+            || autoReconnectCheckBox.isSelected != settings.autoReconnectDebugger
+            || reconnectDelayField.text.toLongOrNull() != settings.debugReconnectDelayMs
     }
 
     override fun apply() {
@@ -79,9 +88,12 @@ class AngelscriptSettingsConfigurable : Configurable {
         settings.lspPathKind = lspPathKindCombo.selectedItem as LspPathKind
         settings.customCommandLine = customCommandLineField.text
         settings.fileExtensions = fileExtensionsField.text
+        settings.clangFormatPath = clangFormatPathField.text
         settings.debugHost = debugHostField.text
         settings.debugPort = debugPortField.text.toIntOrNull() ?: 27099
         settings.autoAttachDebugger = autoAttachCheckBox.isSelected
+        settings.autoReconnectDebugger = autoReconnectCheckBox.isSelected
+        settings.debugReconnectDelayMs = reconnectDelayField.text.toLongOrNull()?.coerceAtLeast(100L) ?: 2000L
     }
 
     override fun reset() {
@@ -91,9 +103,12 @@ class AngelscriptSettingsConfigurable : Configurable {
         lspPathKindCombo.selectedItem = settings.lspPathKind
         customCommandLineField.text = settings.customCommandLine
         fileExtensionsField.text = settings.fileExtensions
+        clangFormatPathField.text = settings.clangFormatPath
         debugHostField.text = settings.debugHost
         debugPortField.text = settings.debugPort.toString()
         autoAttachCheckBox.isSelected = settings.autoAttachDebugger
+        autoReconnectCheckBox.isSelected = settings.autoReconnectDebugger
+        reconnectDelayField.text = settings.debugReconnectDelayMs.toString()
         updateLspPathVisibility()
     }
 }

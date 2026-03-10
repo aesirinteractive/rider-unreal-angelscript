@@ -35,6 +35,12 @@ public class AngelscriptStructDeclImpl extends ASTWrapperPsiElement implements A
 
   @Override
   @NotNull
+  public List<AngelscriptConstructorDecl> getConstructorDeclList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptConstructorDecl.class);
+  }
+
+  @Override
+  @NotNull
   public List<AngelscriptDefaultValueDecl> getDefaultValueDeclList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptDefaultValueDecl.class);
   }
@@ -43,6 +49,12 @@ public class AngelscriptStructDeclImpl extends ASTWrapperPsiElement implements A
   @NotNull
   public List<AngelscriptFunctionDecl> getFunctionDeclList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptFunctionDecl.class);
+  }
+
+  @Override
+  @NotNull
+  public List<AngelscriptIfDefBlock> getIfDefBlockList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptIfDefBlock.class);
   }
 
   @Override

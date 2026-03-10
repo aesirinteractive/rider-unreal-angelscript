@@ -130,6 +130,7 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
 
     /**
      * Connect asynchronously with retry. Retries every [retryDelayMs] ms up to [maxRetries] times.
+     * Pass [maxRetries] = -1 for unlimited retries (never calls [onFailed]).
      * Calls [onConnected] when the connection succeeds.
      */
     fun connectWithRetry(
@@ -139,8 +140,11 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
         onRetry: ((attempt: Int) -> Unit)? = null,
         onFailed: (() -> Unit)? = null
     ) {
+        val unlimited = maxRetries < 0
         connectThread = Thread({
-            for (attempt in 1..maxRetries) {
+            var attempt = 0
+            while (true) {
+                attempt++
                 if (Thread.currentThread().isInterrupted) return@Thread
                 try {
                     val s = Socket(host, port)
@@ -152,16 +156,14 @@ class UnrealDebugClient(val host: String = "127.0.0.1", val port: Int = 27099) {
                     return@Thread
                 } catch (_: ConnectException) {
                     onRetry?.invoke(attempt)
-                    if (attempt < maxRetries) {
-                        Thread.sleep(retryDelayMs)
-                    }
+                    if (!unlimited && attempt >= maxRetries) break
+                    try { Thread.sleep(retryDelayMs) } catch (_: InterruptedException) { return@Thread }
                 } catch (_: InterruptedException) {
                     return@Thread
-                } catch (e: IOException) {
+                } catch (_: IOException) {
                     onRetry?.invoke(attempt)
-                    if (attempt < maxRetries) {
-                        Thread.sleep(retryDelayMs)
-                    }
+                    if (!unlimited && attempt >= maxRetries) break
+                    try { Thread.sleep(retryDelayMs) } catch (_: InterruptedException) { return@Thread }
                 }
             }
             onFailed?.invoke()

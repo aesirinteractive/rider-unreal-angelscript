@@ -132,8 +132,8 @@ internal class AngelscriptLspServerSupportProvider : LspServerSupportProvider {
         }
     }
 
-    override fun fileOpened(project: Project, virtualFile: VirtualFile, serverStarter: LspServerSupportProvider.LspServerStarter) {
-        if (virtualFile.extension != null && virtualFile.extension in AngelscriptSettings.getInstance().parsedFileExtensions()) {
+    override fun fileOpened(project: Project, file: VirtualFile, serverStarter: LspServerSupportProvider.LspServerStarter) {
+        if (file.extension != null && file.extension in AngelscriptSettings.getInstance().parsedFileExtensions()) {
             serverStarter.ensureServerStarted(AngelLspServerDescriptor(project))
         }
     }

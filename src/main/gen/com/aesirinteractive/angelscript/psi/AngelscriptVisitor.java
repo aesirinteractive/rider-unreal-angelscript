@@ -59,6 +59,10 @@ public class AngelscriptVisitor extends PsiElementVisitor {
     visitExpr(o);
   }
 
+  public void visitConstructorDecl(@NotNull AngelscriptConstructorDecl o) {
+    visitPsiElement(o);
+  }
+
   public void visitContinueStatement(@NotNull AngelscriptContinueStatement o) {
     visitPsiElement(o);
   }
@@ -76,6 +80,14 @@ public class AngelscriptVisitor extends PsiElementVisitor {
   }
 
   public void visitElseClause(@NotNull AngelscriptElseClause o) {
+    visitPsiElement(o);
+  }
+
+  public void visitEnumDecl(@NotNull AngelscriptEnumDecl o) {
+    visitPsiElement(o);
+  }
+
+  public void visitEnumVariant(@NotNull AngelscriptEnumVariant o) {
     visitPsiElement(o);
   }
 
@@ -111,6 +123,14 @@ public class AngelscriptVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitIfDefBlock(@NotNull AngelscriptIfDefBlock o) {
+    visitPsiElement(o);
+  }
+
+  public void visitIfDefBranch(@NotNull AngelscriptIfDefBranch o) {
+    visitPsiElement(o);
+  }
+
   public void visitIfStatement(@NotNull AngelscriptIfStatement o) {
     visitPsiElement(o);
   }
@@ -137,6 +157,14 @@ public class AngelscriptVisitor extends PsiElementVisitor {
 
   public void visitMultiplyExpr(@NotNull AngelscriptMultiplyExpr o) {
     visitExpr(o);
+  }
+
+  public void visitNamespaceDecl(@NotNull AngelscriptNamespaceDecl o) {
+    visitPsiElement(o);
+  }
+
+  public void visitPPDefineDirective(@NotNull AngelscriptPPDefineDirective o) {
+    visitPsiElement(o);
   }
 
   public void visitParameterDecl(@NotNull AngelscriptParameterDecl o) {
@@ -204,6 +232,10 @@ public class AngelscriptVisitor extends PsiElementVisitor {
   }
 
   public void visitUClassDecl(@NotNull AngelscriptUClassDecl o) {
+    visitPsiElement(o);
+  }
+
+  public void visitUEnumDecl(@NotNull AngelscriptUEnumDecl o) {
     visitPsiElement(o);
   }
 

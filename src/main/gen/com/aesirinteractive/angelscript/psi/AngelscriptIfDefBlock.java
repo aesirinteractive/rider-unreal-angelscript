@@ -5,12 +5,18 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface AngelscriptMixinDecl extends PsiElement {
+public interface AngelscriptIfDefBlock extends PsiElement {
 
   @NotNull
-  AngelscriptFunctionDecl getFunctionDecl();
+  List<AngelscriptIfDefBranch> getIfDefBranchList();
 
   @Nullable
-  AngelscriptUFunctionDecl getUFunctionDecl();
+  PsiElement getPpElse();
+
+  @Nullable
+  PsiElement getPpEndif();
+
+  @NotNull
+  PsiElement getPpIf();
 
 }

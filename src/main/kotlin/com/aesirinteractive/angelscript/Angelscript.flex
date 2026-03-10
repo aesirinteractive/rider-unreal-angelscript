@@ -55,10 +55,12 @@ DEC_INTEGER      = {DEC_DIGIT}+({DIGIT_SEP}{DEC_DIGIT}+)*
 HEX_INTEGER      = 0[xX]{HEX_DIGIT}+({DIGIT_SEP}{HEX_DIGIT}+)*
 BIN_INTEGER      = 0[bB]{BIN_DIGIT}+({DIGIT_SEP}{BIN_DIGIT}+)*
 
+NUM_SUFFIX       = [fFdDuUlL]
+
 FLOAT_NUMBER     = (
-										 {DEC_INTEGER}\.{DEC_DIGIT}*({EXPONENT})?
-									 | \.{DEC_DIGIT}+({EXPONENT})?
-									 | {DEC_INTEGER}{EXPONENT}
+										 {DEC_INTEGER}\.{DEC_DIGIT}*({EXPONENT})?{NUM_SUFFIX}?
+									 | \.{DEC_DIGIT}+({EXPONENT})?{NUM_SUFFIX}?
+									 | {DEC_INTEGER}{EXPONENT}{NUM_SUFFIX}?
 									 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,6 +84,16 @@ RAW_PREFIX       = [A-Za-z_][A-Za-z0-9_]*
 	"/*"                             { yybegin(IN_BLOCK_COMMENT); return AngelscriptTypes.COMMENT; }
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
+	// Preprocessor directives — consume the entire line
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+
+	"#"{LINE_WS}*"if"{LINE_WS}+[^\r\n]*    { return AngelscriptTypes.PP_IF; }
+	"#"{LINE_WS}*"elif"{LINE_WS}+[^\r\n]*  { return AngelscriptTypes.PP_ELIF; }
+	"#"{LINE_WS}*"else"{LINE_WS}*[^\r\n]*  { return AngelscriptTypes.PP_ELSE; }
+	"#"{LINE_WS}*"endif"{LINE_WS}*[^\r\n]* { return AngelscriptTypes.PP_ENDIF; }
+	"#"{LINE_WS}*"define"{LINE_WS}+[^\r\n]* { return AngelscriptTypes.PP_DEFINE; }
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Strings
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -94,26 +106,11 @@ RAW_PREFIX       = [A-Za-z_][A-Za-z0-9_]*
 	"'"                              { yybegin(IN_STRING_SQ); return AngelscriptTypes.STRING_LITERAL; }
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
-	// Keywords
-	///////////////////////////////////////////////////////////////////////////////////////////////////
-
-//	"class"|"struct"|"mixin"|"event"|"typedef"|"namespace"|"delegate"|
-//	"UFUNCTION"|"UPROPERTY"|"UCLASS"|"USTRUCT"|
-//	"shared"|"external"|"private"|"protected"|"const"|"auto"|
-//	"override"|"final"|"explicit"|"property"|"in"|"out"|"inout"|
-//	"if"|"else"|"switch"|"case"|"default"|"while"|"do"|"for"|"return"|
-//	"break"|"continue"|"void"|"int"|"int8"|"int16"|"int32"|"int64"|
-//	"uint"|"uint8"|"uint16"|"uint32"|"uint64"|"float"|"double"|"bool"|
-//	"true"|"false"|"TRUE"|"FALSE"|"NULL"|"nullptr"|"not"|"and"|"or"|"xor"|"is" {
-//																	 return AngelscriptTypes.KEYWORD;
-//																 }
-
-	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// Literals and identifiers
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 
 	{FLOAT_NUMBER}                   { return AngelscriptTypes.NUMBER_LITERAL; }
-	{HEX_INTEGER}|{BIN_INTEGER}|{DEC_INTEGER}
+	{HEX_INTEGER}{NUM_SUFFIX}?|{BIN_INTEGER}{NUM_SUFFIX}?|{DEC_INTEGER}{NUM_SUFFIX}?
 																	 { return AngelscriptTypes.NUMBER_LITERAL; }
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -201,6 +198,7 @@ RAW_PREFIX       = [A-Za-z_][A-Za-z0-9_]*
       "typedef"                       { return AngelscriptTypes.TYPEDEF_KW; }
       "event"                         { return AngelscriptTypes.EVENT_KW; }
       "delegate"                      { return AngelscriptTypes.DELEGATE_KW; }
+      "namespace"                     { return AngelscriptTypes.NAMESPACE_KW; }
       "mixin"                         { return AngelscriptTypes.MIXIN_KW; }
       "shared"                        { return AngelscriptTypes.SHARED_KW; }
       "external"                      { return AngelscriptTypes.EXTERNAL_KW; }
@@ -215,6 +213,7 @@ RAW_PREFIX       = [A-Za-z_][A-Za-z0-9_]*
       "UPROPERTY"                     { return AngelscriptTypes.UPROPERTY_KW; }
       "UCLASS"                        { return AngelscriptTypes.UCLASS_KW; }
       "USTRUCT"                       { return AngelscriptTypes.USTRUCT_KW; }
+      "UENUM"                         { return AngelscriptTypes.UENUM_KW; }
       "break"                         { return AngelscriptTypes.BREAK; }
       "const"                         { return AngelscriptTypes.CONST; }
       "continue"                      { return AngelscriptTypes.CONTINUE; }
@@ -222,7 +221,7 @@ RAW_PREFIX       = [A-Za-z_][A-Za-z0-9_]*
       "enum"                          { return AngelscriptTypes.ENUM; }
       "for"                           { return AngelscriptTypes.FOR; }
       "if"                            { return AngelscriptTypes.IF; }
-      "OUT"                           { return AngelscriptTypes.OUT; }
+      "out"                           { return AngelscriptTypes.OUT; }
       "in"                            { return AngelscriptTypes.IN; }
       "AUTO"                          { return AngelscriptTypes.AUTO; }
       "while"                         { return AngelscriptTypes.WHILE; }

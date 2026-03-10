@@ -11,14 +11,14 @@ import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.aesirinteractive.angelscript.psi.*;
 
-public class AngelscriptMixinDeclImpl extends ASTWrapperPsiElement implements AngelscriptMixinDecl {
+public class AngelscriptEnumVariantImpl extends ASTWrapperPsiElement implements AngelscriptEnumVariant {
 
-  public AngelscriptMixinDeclImpl(@NotNull ASTNode node) {
+  public AngelscriptEnumVariantImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull AngelscriptVisitor visitor) {
-    visitor.visitMixinDecl(this);
+    visitor.visitEnumVariant(this);
   }
 
   @Override
@@ -28,15 +28,15 @@ public class AngelscriptMixinDeclImpl extends ASTWrapperPsiElement implements An
   }
 
   @Override
-  @NotNull
-  public AngelscriptFunctionDecl getFunctionDecl() {
-    return findNotNullChildByClass(AngelscriptFunctionDecl.class);
+  @Nullable
+  public AngelscriptExpr getExpr() {
+    return findChildByClass(AngelscriptExpr.class);
   }
 
   @Override
-  @Nullable
-  public AngelscriptUFunctionDecl getUFunctionDecl() {
-    return findChildByClass(AngelscriptUFunctionDecl.class);
+  @NotNull
+  public PsiElement getIdentifier() {
+    return findNotNullChildByType(IDENTIFIER);
   }
 
 }

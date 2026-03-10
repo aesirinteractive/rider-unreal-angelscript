@@ -11,10 +11,16 @@ public interface AngelscriptClassDecl extends PsiElement {
   List<AngelscriptComment> getCommentList();
 
   @NotNull
+  List<AngelscriptConstructorDecl> getConstructorDeclList();
+
+  @NotNull
   List<AngelscriptDefaultValueDecl> getDefaultValueDeclList();
 
   @NotNull
   List<AngelscriptFunctionDecl> getFunctionDeclList();
+
+  @NotNull
+  List<AngelscriptIfDefBlock> getIfDefBlockList();
 
   @NotNull
   List<AngelscriptTypeRef> getTypeRefList();

@@ -93,6 +93,13 @@
     // Other
     SHA='#'
 
+    // Preprocessor directives
+    PP_IF
+    PP_ELIF
+    PP_ELSE
+    PP_ENDIF
+    PP_DEFINE
+
     // Control flow keywords
     BREAK='break'
     CONTINUE='continue'
@@ -115,6 +122,7 @@
     CLASS='class'
     SUPER='super'
     TYPEDEF_KW='typedef'
+    NAMESPACE_KW='namespace'
     EVENT_KW='event'
     DELEGATE_KW='delegate'
     MIXIN_KW='mixin'
@@ -129,7 +137,7 @@
 
     // Type modifier keywords
     IN='in'
-    OUT='OUT'
+    OUT='out'
     INOUT_KW='inout'
     AUTO='AUTO'
     AUTO_KW='auto'
@@ -165,6 +173,7 @@
     UPROPERTY_KW='UPROPERTY'
     UCLASS_KW='UCLASS'
     USTRUCT_KW='USTRUCT'
+    UENUM_KW='UENUM'
   ]
 
   extends(".*Expr")=Expr
@@ -176,29 +185,90 @@ private ScriptItem ::= !(<<eof>>) Item {
   pin = 1
   recoverWhile = ScriptItem_recover
 }
-private ScriptItem_recover ::= !(CLASS | STRUCT | EVENT_KW | DELEGATE_KW | MIXIN_KW
-                               | TYPEDEF_KW | UCLASS_KW | USTRUCT_KW | UFUNCTION_KW | UPROPERTY_KW
-                               | IDENTIFIER | CONST | VOID_KW
+private ScriptItem_recover ::= !(CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
+                               | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+                               | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
-                               | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO | <<eof>>)
+                               | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
+                               | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>)
 
-private Item ::= Declaration
+private Item ::= IfDefBlock
+               | Declaration
                | Statement
                | Comment
                | SEMICOLON
 
 // -------------------------------------------------------------------------------------------------
+// Preprocessor blocks
+// -------------------------------------------------------------------------------------------------
+
+// Handles #if / #elif / #else / #endif and #define directives.
+// The directive tokens (PP_IF etc.) each consume a whole line in the lexer,
+// so no further lexing of the condition is needed at the grammar level.
+IfDefBlock ::= PP_IF IfDefBranch (PP_ELIF IfDefBranch)* (PP_ELSE IfDefBranch)? PP_ENDIF {
+  pin = 1
+}
+IfDefBranch ::= Item*
+
+PP_DefineDirective ::= PP_DEFINE
+
+// -------------------------------------------------------------------------------------------------
+// Enums
+// -------------------------------------------------------------------------------------------------
+
+// enum EMyEnum { Val1, Val2 = 5 }
+// enum class EMyEnum { Val1 }   (scoped enum)
+EnumDecl ::= UEnumDecl? ENUM identifier LBRACE EnumVariant_with_recover* RBRACE SEMICOLON? {
+  pin = 2
+}
+
+private EnumVariant_with_recover ::= !(RBRACE | <<eof>>) EnumVariant {
+  pin = 1
+  recoverWhile = EnumVariant_recover
+}
+private EnumVariant_recover ::= !(RBRACE | IDENTIFIER | <<eof>>)
+
+EnumVariant ::= identifier (EQ Expr)? COMMA?
+
+// -------------------------------------------------------------------------------------------------
+// Namespaces
+// -------------------------------------------------------------------------------------------------
+
+// namespace A { ... }
+// namespace B::C { ... }
+NamespaceDecl ::= NAMESPACE_KW NamespacePath LBRACE NamespaceItem_with_recover* RBRACE SEMICOLON? {
+  pin = 1
+}
+
+private NamespacePath ::= identifier (COLONCOLON identifier)*
+
+private NamespaceItem_with_recover ::= !(RBRACE | <<eof>>) Item {
+  pin = 1
+  recoverWhile = NamespaceItem_recover
+}
+private NamespaceItem_recover ::= !(RBRACE | CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
+                                  | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+                                  | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
+                                  | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
+                                  | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
+                                  | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
+                                  | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>)
+
+// -------------------------------------------------------------------------------------------------
 // Declarations
 // -------------------------------------------------------------------------------------------------
 
-private Declaration ::= TypedefDecl
+private Declaration ::= NamespaceDecl
+                      | EnumDecl
+                      | TypedefDecl
                       | ClassDecl
                       | StructDecl
                       | EventDecl
                       | DelegateDecl
                       | MixinDecl
                       | FunctionDecl
+                      | DefaultValueDecl
                       | VariableDecl
                       | Comment
 
@@ -218,7 +288,8 @@ private ClassMember_recover ::= !(RBRACE | UFUNCTION_KW | UPROPERTY_KW | PRIVATE
                                 | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
                                 | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
                                 | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
-                                | TILDE | IDENTIFIER | COMMENT | <<eof>>)
+                                | TILDE | IDENTIFIER | COMMENT
+                                | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>)
 
 private StructMember_with_recover ::= !(RBRACE | <<eof>>) StructMember {
   pin = 1
@@ -227,24 +298,33 @@ private StructMember_with_recover ::= !(RBRACE | <<eof>>) StructMember {
 
 private InheritanceList ::= COLON TypeRef (COMMA TypeRef)*
 
-private ClassMember ::= FunctionDecl | DefaultValueDecl | VariableDecl | Comment
-private StructMember ::= FunctionDecl | DefaultValueDecl | VariableDecl | Comment
+private ClassMember ::= IfDefBlock | ConstructorDecl | FunctionDecl | DefaultValueDecl | VariableDecl | Comment
+private StructMember ::= IfDefBlock | ConstructorDecl | FunctionDecl | DefaultValueDecl | VariableDecl | Comment
 
 EventDecl    ::= EVENT_KW    FunctionDecl
 DelegateDecl ::= DELEGATE_KW FunctionDecl
-MixinDecl    ::= MIXIN_KW    FunctionDecl
+MixinDecl    ::= UFunctionDecl? MIXIN_KW FunctionDecl
 
 UFunctionDecl ::= UFUNCTION_KW MetaArgList
 UPropertyDecl ::= UPROPERTY_KW MetaArgList
 UClassDecl    ::= UCLASS_KW    MetaArgList
 UStructDecl   ::= USTRUCT_KW   MetaArgList
+UEnumDecl     ::= UENUM_KW     MetaArgList
 
 private MetaArgList ::= LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
 private MetaArg ::= identifier (EQ MetaArgValue)?
 private MetaArgValue ::= LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
                        | Expr
 
-FunctionDecl ::= UFunctionDecl?
+// Constructor: no return type — identifier immediately followed by ParameterList
+ConstructorDecl ::= AccessSpecifier?
+                    identifier
+                    ParameterList
+                    (SEMICOLON | CompoundStatement SEMICOLON?)
+
+FunctionDecl ::= AccessSpecifier?
+                 UFunctionDecl?
+                 AccessSpecifier?
                  FunctionLocation?
                  AccessSpecifier?
                  (TypeRef AND? | TILDE)?
@@ -252,7 +332,7 @@ FunctionDecl ::= UFunctionDecl?
                  ParameterList
                  CONST?
                  FuncAttr?
-                 (SEMICOLON | CompoundStatement)
+                 (SEMICOLON | CompoundStatement SEMICOLON?)
 
 private FunctionLocation ::= (SHARED_KW | EXTERNAL_KW)+
 private AccessSpecifier  ::= PRIVATE_KW | PROTECTED_KW
@@ -279,7 +359,8 @@ private PrimitiveType ::= VOID_KW
 ScopeRef    ::= (identifier (COLONCOLON identifier)*)? TypeArgument? COLONCOLON
 TypeArgument ::= LT TypeRef (COMMA TypeRef)* GT
 
-VariableDecl ::= UPropertyDecl?
+VariableDecl ::= AccessSpecifier?
+                 UPropertyDecl?
                  AccessSpecifier?
                  TypeRef
                  TypeMod?
@@ -327,9 +408,12 @@ private BlockItem_recover ::= !(RBRACE | IF | WHILE | FOR | RETURN | BREAK | CON
                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
-                               | IDENTIFIER | COMMENT | <<eof>>)
+                               | PLUSPLUS | MINUSMINUS | MINUS | EXCL | AT | TILDE | LPAREN
+                               | NUMBER_LITERAL | STRING_LITERAL | BOOL_LITERAL | NULLPTR_KW
+                               | IDENTIFIER | COMMENT
+                               | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>)
 
-private BlockItem ::= Declaration | Statement | Comment
+private BlockItem ::= IfDefBlock | Declaration | Statement | Comment
 
 BreakStatement    ::= BREAK    SEMICOLON
 ContinueStatement ::= CONTINUE SEMICOLON

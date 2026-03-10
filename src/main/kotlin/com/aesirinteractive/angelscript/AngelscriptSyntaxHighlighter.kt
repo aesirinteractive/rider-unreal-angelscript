@@ -42,8 +42,12 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
             return arrayOf(createTextAttributesKey("ANGELSCRIPT_$typeName", fallback))
         }
 
+        private val PREPROCESSOR: TextAttributesKey =
+            createTextAttributesKey("ANGELSCRIPT_PREPROCESSOR", DefaultLanguageHighlighterColors.METADATA)
+
         private val BAD_CHAR_KEYS = arrayOf<TextAttributesKey>(BAD_CHARACTER)
         private val COMMENT_KEYS = arrayOf<TextAttributesKey>(COMMENT)
+        private val PREPROCESSOR_KEYS = arrayOf<TextAttributesKey>(PREPROCESSOR)
         private val EMPTY_KEYS = emptyArray<TextAttributesKey>()
 
         // Lexer-level token highlighting (token types only — no PSI node types here)
@@ -75,6 +79,7 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
             AngelscriptTypes.CLASS to uniqueKey("CLASS", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.SUPER to uniqueKey("SUPER", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.TYPEDEF_KW to uniqueKey("TYPEDEF_KW", DefaultLanguageHighlighterColors.KEYWORD),
+            AngelscriptTypes.NAMESPACE_KW to uniqueKey("NAMESPACE_KW", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.EVENT_KW to uniqueKey("EVENT_KW", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.DELEGATE_KW to uniqueKey("DELEGATE_KW", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.MIXIN_KW to uniqueKey("MIXIN_KW", DefaultLanguageHighlighterColors.KEYWORD),
@@ -118,6 +123,7 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
             AngelscriptTypes.UPROPERTY_KW to uniqueKey("UPROPERTY_KW", DefaultLanguageHighlighterColors.METADATA),
             AngelscriptTypes.UCLASS_KW to uniqueKey("UCLASS_KW", DefaultLanguageHighlighterColors.METADATA),
             AngelscriptTypes.USTRUCT_KW to uniqueKey("USTRUCT_KW", DefaultLanguageHighlighterColors.METADATA),
+            AngelscriptTypes.UENUM_KW to uniqueKey("UENUM_KW", DefaultLanguageHighlighterColors.METADATA),
             AngelscriptTypes.EQ to uniqueKey("EQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.EQEQ to uniqueKey("EQEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.EXCLEQ to uniqueKey("EXCLEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
@@ -161,6 +167,12 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
             AngelscriptTypes.RPAREN to uniqueKey("RPAREN", DefaultLanguageHighlighterColors.PARENTHESES),
             AngelscriptTypes.LBRACK to uniqueKey("LBRACK", DefaultLanguageHighlighterColors.BRACKETS),
             AngelscriptTypes.RBRACK to uniqueKey("RBRACK", DefaultLanguageHighlighterColors.BRACKETS),
+            // Preprocessor directives
+            AngelscriptTypes.PP_IF to PREPROCESSOR_KEYS,
+            AngelscriptTypes.PP_ELIF to PREPROCESSOR_KEYS,
+            AngelscriptTypes.PP_ELSE to PREPROCESSOR_KEYS,
+            AngelscriptTypes.PP_ENDIF to PREPROCESSOR_KEYS,
+            AngelscriptTypes.PP_DEFINE to PREPROCESSOR_KEYS,
         )
 
         // Semantic color keys — used by AngelscriptAnnotator, not by the lexer highlighter

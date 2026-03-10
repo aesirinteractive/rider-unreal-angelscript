@@ -20,7 +20,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var fileExtensions: String = "as",
         var debugHost: String = "127.0.0.1",
         var debugPort: Int = 27099,
-        var autoAttachDebugger: Boolean = true
+        var autoAttachDebugger: Boolean = true,
+        var autoReconnectDebugger: Boolean = false,
+        var debugReconnectDelayMs: Long = 10000L,
+        var clangFormatPath: String = "clang-format"
     )
 
     private var state = State()
@@ -62,6 +65,18 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var autoAttachDebugger: Boolean
         get() = state.autoAttachDebugger
         set(value) { state.autoAttachDebugger = value }
+
+    var autoReconnectDebugger: Boolean
+        get() = state.autoReconnectDebugger
+        set(value) { state.autoReconnectDebugger = value }
+
+    var debugReconnectDelayMs: Long
+        get() = state.debugReconnectDelayMs
+        set(value) { state.debugReconnectDelayMs = value }
+
+    var clangFormatPath: String
+        get() = state.clangFormatPath
+        set(value) { state.clangFormatPath = value }
 
     fun parsedFileExtensions(): Set<String> =
         fileExtensions.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()

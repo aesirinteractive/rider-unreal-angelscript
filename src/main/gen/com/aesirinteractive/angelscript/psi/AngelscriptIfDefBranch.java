@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface AngelscriptCompoundStatement extends PsiElement {
+public interface AngelscriptIfDefBranch extends PsiElement {
 
   @NotNull
   List<AngelscriptClassDecl> getClassDeclList();

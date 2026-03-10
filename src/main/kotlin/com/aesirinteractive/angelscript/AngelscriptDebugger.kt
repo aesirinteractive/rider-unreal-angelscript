@@ -58,6 +58,8 @@ import com.intellij.xdebugger.frame.presentation.XStringValuePresentation
 import com.intellij.xdebugger.impl.XSourcePositionImpl
 import com.intellij.xdebugger.impl.breakpoints.LineBreakpointState
 import com.intellij.xdebugger.impl.breakpoints.XLineBreakpointImpl
+import com.aesirinteractive.angelscript.AngelscriptTypes
+import com.aesirinteractive.angelscript.psi.AngelscriptArgList
 import com.aesirinteractive.angelscript.psi.AngelscriptAssignmentExpr
 import com.aesirinteractive.angelscript.psi.AngelscriptExpr
 import com.aesirinteractive.angelscript.psi.AngelscriptFunctionDecl
@@ -308,26 +310,139 @@ class AngelscriptEvaluator(
     }
 
     override fun getExpressionRangeAtOffset(project: com.intellij.openapi.project.Project, document: com.intellij.openapi.editor.Document, offset: Int, sideEffectsAllowed: Boolean): com.intellij.openapi.util.TextRange? {
-        val text = document.charsSequence
-        if (offset >= text.length) return null
+        if (offset >= document.textLength) return null
 
-        // Expand left to start of identifier (letters, digits, underscore, dot for member access)
+        val psiFile = com.intellij.psi.PsiDocumentManager.getInstance(project).getPsiFile(document)
+            ?: return identifierRangeAt(document.charsSequence, offset)
+
+        val leaf = psiFile.findElementAt(offset) ?: return null
+        // Walk upward through the PSI tree to find the innermost PostfixExpr that directly
+        // contains the leaf, without crossing any non-Expr boundary.
+        //
+        // Grammar-Kit's collapse semantics (extends(".*Expr")=Expr) eliminate intermediate
+        // expression nodes when a sub-expression has a single child. For example, a simple
+        // identifier X inside a.foo(X) has this parent chain:
+        //   VariableAccessExpr → Argument → ArgList → PostfixExpr(a.foo(X))
+        // getParentOfType would skip past the ArgList and return the outer PostfixExpr,
+        // causing hover on X to evaluate "a.foo" instead of X.
+        //
+        // The same problem applies to any non-Expr PSI node that contains an Expr child:
+        //   - ArgList / Argument  in call expressions: a.foo(X)
+        //   - ParenthesizedExpr  as a primary with suffixes: (X).foo
+        //   - SubscriptSuffix (private/inlined): a[X] — no PSI boundary, handled below
+        //
+        // Strategy: walk up only through nodes in the Expr collapse set (AngelscriptParser.EXTENDS_SETS_).
+        // Stop at the first PostfixExpr (use it) or at any non-Expr node (fall back to identifier range).
+        val postfix = run {
+            var node: com.intellij.psi.PsiElement? = leaf.parent
+            var found: AngelscriptPostfixExpr? = null
+            while (node != null) {
+                if (node is AngelscriptPostfixExpr) {
+                    found = node
+                    break
+                }
+                // Only continue upward while we're inside the Expr collapse set.
+                // Any non-Expr node (ArgList, Argument, ParenthesizedExpr-as-primary-with-suffix,
+                // statements, declarations, etc.) means the leaf is not directly under a PostfixExpr.
+                if (!AngelscriptParser.EXTENDS_SETS_[0].contains(node.node?.elementType)) break
+                node = node.parent
+            }
+            found
+        } ?: return identifierRangeAt(document.charsSequence, offset)
+
+        // PostfixExpr children are flat (private rules are inlined by Grammar-Kit):
+        //   VariableAccessExpr  DOT  IDENTIFIER  DOT  IDENTIFIER  LBRACK  Expr  RBRACK  ...
+        //
+        // Strategy: walk the children left-to-right, building up a range segment by segment.
+        // Stop extending once we pass a segment whose end offset exceeds the cursor, subject
+        // to the rules for each token type.
+        val children = postfix.node.getChildren(null)
+        val postfixStart = postfix.textRange.startOffset
+
+        // Accumulate the start/end offsets of the expression we'll return.
+        // exprStart begins at the PostfixExpr start and is reset when the cursor lands
+        // inside a subscript — in that case we evaluate the index sub-expression, not the
+        // whole a[...] chain.
+        var exprStart = postfixStart
+        var exprEnd = postfixStart  // will be set to end of first child below
+
+        // First child is always the PrimaryExpr composite (VariableAccessExpr etc.)
+        if (children.isEmpty()) return null
+        val primaryChild = children[0]
+        exprEnd = primaryChild.startOffset + primaryChild.textLength
+        // If cursor is inside the base primary, return just that range immediately
+        if (offset < exprEnd) {
+            return com.intellij.openapi.util.TextRange(exprStart, exprEnd)
+        }
+
+        var i = 1
+        while (i < children.size) {
+            val child = children[i]
+            val childStart = child.startOffset
+            val type = child.elementType
+
+            when (type) {
+                // DOT: peek ahead to the next IDENTIFIER — that pair forms a FieldSuffix.
+                // Extend only if the cursor is on the identifier (not just the dot).
+                AngelscriptTypes.DOT -> {
+                    val nextIdx = i + 1
+                    if (nextIdx >= children.size) break
+                    val ident = children[nextIdx]
+                    val identEnd = ident.startOffset + ident.textLength
+                    if (offset < ident.startOffset) break  // cursor is on the dot itself — return current range
+                    exprEnd = identEnd
+                    i = nextIdx  // consume the identifier too
+                    if (offset < identEnd) break  // cursor was on this identifier — stop here
+                }
+
+                // LBRACK / RBRACK: SubscriptSuffix inlined as flat children.
+                // The inner Expr is a single PSI child between [ and ].
+                // - Hovering [ or ]: return the whole a[...] expression built so far including brackets.
+                // - Hovering inside: reset exprStart/exprEnd to the inner expression's range.
+                AngelscriptTypes.LBRACK -> {
+                    // The inner Expr is children[i+1]; RBRACK is children[i+2] (depth=1 always at
+                    // this level since nested subscripts appear as a child PostfixExpr node, not
+                    // as further flat tokens here).
+                    val innerIdx = i + 1
+                    val rbrackIdx = i + 2
+                    val rbrack = if (rbrackIdx < children.size && children[rbrackIdx].elementType == AngelscriptTypes.RBRACK)
+                        children[rbrackIdx] else null
+                    val rbrackEnd = rbrack?.let { it.startOffset + it.textLength } ?: (childStart + 1)
+
+                    when {
+                        offset == childStart || (rbrack != null && offset >= rbrack.startOffset && offset < rbrackEnd) -> {
+                            // Hovering [ or ] — return the full a[...] range
+                            exprEnd = rbrackEnd
+                        }
+                        rbrack != null && innerIdx < rbrackIdx -> {
+                            // Hovering inside the subscript — evaluate the inner expression
+                            val inner = children[innerIdx]
+                            exprStart = inner.startOffset
+                            exprEnd = inner.startOffset + inner.textLength
+                        }
+                    }
+                    break
+                }
+
+                // Call suffix (ArgList) or anything else — stop
+                else -> break
+            }
+            i++
+        }
+
+        return if (exprEnd > exprStart) com.intellij.openapi.util.TextRange(exprStart, exprEnd) else null
+    }
+
+    private fun identifierRangeAt(text: CharSequence, offset: Int): com.intellij.openapi.util.TextRange? {
+        if (offset >= text.length || !isIdentChar(text[offset])) return null
         var start = offset
-        while (start > 0 && isExprChar(text[start - 1])) start--
-
-        // Expand right to end of identifier
+        while (start > 0 && isIdentChar(text[start - 1])) start--
         var end = offset
-        while (end < text.length && isExprChar(text[end])) end++
-
-        if (start >= end) return null
-        // Don't return a range that starts or ends with a dot
-        while (start < end && text[start] == '.') start++
-        while (end > start && text[end - 1] == '.') end--
-
+        while (end < text.length && isIdentChar(text[end])) end++
         return if (start < end) com.intellij.openapi.util.TextRange(start, end) else null
     }
 
-    private fun isExprChar(c: Char) = c.isLetterOrDigit() || c == '_' || c == '.'
+    private fun isIdentChar(c: Char) = c.isLetterOrDigit() || c == '_'
 
     fun receiveResult(name: String, value: String, type: String, hasMembers: Boolean) {
         val pending = synchronized(pendingEvals) { pendingEvals.removeFirstOrNull() } ?: return
@@ -491,9 +606,23 @@ class AngelscriptProcess(
             }
         }
 
+        val settings = AngelscriptSettings.getInstance()
+        val autoReconnect = settings.autoReconnectDebugger
+        val reconnectDelayMs = settings.debugReconnectDelayMs
+
         client.onClosed = {
-            ApplicationManager.getApplication().invokeLater {
-                session.stop()
+            if (autoReconnect) {
+                expandedPaths.clear()
+                if (!session.isStopped) {
+                    val consoleView = session.consoleView
+                    consoleView?.print("Disconnected from Unreal AngelScript debug server. Reconnecting...\n",
+                        com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+                    startConnecting(autoReconnect, reconnectDelayMs)
+                }
+            } else {
+                ApplicationManager.getApplication().invokeLater {
+                    session.stop()
+                }
             }
         }
 
@@ -513,10 +642,15 @@ class AngelscriptProcess(
 //            )
 //        }
 
+        startConnecting(autoReconnect, reconnectDelayMs)
+    }
+
+    private fun startConnecting(autoReconnect: Boolean, retryDelayMs: Long) {
         val consoleView = session.consoleView
+        val maxRetries = if (autoReconnect) -1 else 30
         client.connectWithRetry(
-            maxRetries = 30,
-            retryDelayMs = 2000L,
+            maxRetries = maxRetries,
+            retryDelayMs = retryDelayMs,
             onConnected = {
                 consoleView?.print("Connected to Unreal AngelScript debug server at $host:$port\n",
                     com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
@@ -524,8 +658,13 @@ class AngelscriptProcess(
                 breakpointHandler?.syncAllBreakpoints()
             },
             onRetry = { attempt ->
-                consoleView?.print("Waiting for Unreal Engine... (attempt $attempt/30)\n",
-                    com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+                if (autoReconnect) {
+                    consoleView?.print("Waiting for Unreal Engine... (attempt $attempt)\n",
+                        com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+                } else {
+                    consoleView?.print("Waiting for Unreal Engine... (attempt $attempt/30)\n",
+                        com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+                }
             },
             onFailed = {
                 consoleView?.print("Failed to connect to Unreal AngelScript debug server at $host:$port\n",
