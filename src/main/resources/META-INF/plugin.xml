@@ -47,7 +47,7 @@
         <configurationType implementation="com.aesirinteractive.angelscript.AngelscriptConfigurationType"/>
         <programRunner implementation="com.aesirinteractive.angelscript.AngelscriptProgramRunner"/>
         <xdebugger.breakpointType implementation="com.aesirinteractive.angelscript.AngelscriptBreakpointType"/>
-        <postStartupActivity implementation="com.aesirinteractive.angelscript.AngelscriptAutoAttachStartupActivity"/>
+        <postStartupActivity implementation="com.aesirinteractive.angelscript.AngelscriptProjectSetupActivity"/>
         <projectService serviceImplementation="com.aesirinteractive.angelscript.AngelscriptInlineValuesService" id="ANGELSCRIPT_INLINE_VALUES"/>
         <editor.linePainter implementation="com.aesirinteractive.angelscript.AngelscriptEditorLinePainter"/>
 

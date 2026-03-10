@@ -1,67 +1,48 @@
 package com.aesirinteractive.angelscript
 
-import com.intellij.execution.ExecutionListener
-import com.intellij.execution.ExecutionManager
-import com.intellij.execution.executors.DefaultDebugExecutor
-import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.execution.runners.ExecutionEnvironmentBuilder
+import com.intellij.openapi.application.invokeAndWaitIfNeeded
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ModuleRootModificationUtil
+import com.intellij.openapi.roots.ex.ProjectRootManagerEx
 import com.intellij.openapi.startup.ProjectActivity
-import com.intellij.xdebugger.XDebuggerManager
 
 /**
- * Startup activity that subscribes [AngelscriptAutoAttachListener] to the project's execution
- * topic so it is notified when debug sessions start.
+ * Startup activity that detects Unreal Engine projects (by presence of a .uproject file in the
+ * project root) and automatically registers the "Script" subfolder as a source root on the module.
+ * Does nothing if Script/ does not exist or is already registered.
  */
-class AngelscriptAutoAttachStartupActivity : ProjectActivity {
+class AngelscriptProjectSetupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
-        project.messageBus.connect().subscribe(
-            ExecutionManager.EXECUTION_TOPIC,
-            AngelscriptAutoAttachListener()
-        )
-    }
-}
+        @Suppress("DEPRECATION")
+        val baseDir = project.baseDir ?: return
 
-/**
- * Listens for any debug execution starting in the project. When a debug configuration is
- * launched that is NOT an AngelScript configuration, and [AngelscriptSettings.autoAttachDebugger]
- * is enabled, automatically starts an AngelScript debug session to attach to Unreal's debug server.
- */
-class AngelscriptAutoAttachListener : ExecutionListener {
+        // Only proceed if this looks like an Unreal project
+        if (baseDir.children.none { it.extension == "uproject" }) return
 
-    override fun processStarting(executorId: String, environment: ExecutionEnvironment) {
-        // Only respond to debug launches
-        if (executorId != DefaultDebugExecutor.EXECUTOR_ID) return
+        // Script/ must already exist on disk
+        val scriptDir = baseDir.findChild("Script") ?: return
 
-        // Don't trigger recursively for AngelScript configs
-        if (environment.runProfile is AngelScriptRunConfiguration) return
+        val module = ModuleManager.getInstance(project).modules.firstOrNull() ?: return
 
-        val settings = AngelscriptSettings.getInstance()
-        if (!settings.autoAttachDebugger) return
-
-        val project = environment.project
-
-        // Run on a slight delay so the primary debug session has time to register first
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
-            startAngelscriptDebugSession(project, settings.debugHost, settings.debugPort)
-        }
-    }
-
-    private fun startAngelscriptDebugSession(project: Project, host: String, port: Int) {
-        try {
-            val configType = AngelscriptConfigurationType()
-            val factory = configType.configurationFactories.first()!!
-            val runConfig = AngelScriptRunConfiguration(project, factory)
-
-            val executor = DefaultDebugExecutor.getDebugExecutorInstance()
-            val environment = ExecutionEnvironmentBuilder
-                .create(executor, runConfig)
-                .build()
-
-            XDebuggerManager.getInstance(project)
-                .startSession(environment, AngelscriptDebugProcessStarter(host, port))
-        } catch (e: Exception) {
-            // Silently ignore if we can't start — the user will see failure in console if it matters
+        invokeAndWaitIfNeeded {
+            runWriteAction {
+                if (project.isDisposed) return@runWriteAction
+                ProjectRootManagerEx.getInstanceEx(project).mergeRootsChangesDuring {
+                    ModuleRootModificationUtil.updateModel(module) { model ->
+                        // Script/ is a subdirectory — add it as a source folder inside the
+                        // existing content entry that covers the project root, not as a new entry.
+                        val entry = model.contentEntries.find { contentEntry ->
+                            contentEntry.file?.let { scriptDir.path.startsWith(it.path) } == true
+                        } ?: return@updateModel
+                        val alreadyAdded = entry.sourceFolders.any { it.url == scriptDir.url }
+                        if (!alreadyAdded) {
+                            entry.addSourceFolder(scriptDir.url, false)
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 
 enum class LspPathKind { Bundled, VsCode, Custom, CommandLine }
+enum class ClangFormatPathKind { Bundled, Rider, VisualStudio, Custom }
 
 @Service(Service.Level.APP)
 @State(name = "AngelscriptSettings", storages = [Storage("angelscript.xml")])
@@ -20,10 +21,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var fileExtensions: String = "as",
         var debugHost: String = "127.0.0.1",
         var debugPort: Int = 27099,
-        var autoAttachDebugger: Boolean = true,
-        var autoReconnectDebugger: Boolean = false,
+        var autoReconnectDebugger: Boolean = true,
         var debugReconnectDelayMs: Long = 10000L,
-        var clangFormatPath: String = "clang-format"
+        var clangFormatPathKind: ClangFormatPathKind = ClangFormatPathKind.Bundled,
+        var clangFormatPath: String = ""
     )
 
     private var state = State()
@@ -62,10 +63,6 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         get() = state.debugPort
         set(value) { state.debugPort = value }
 
-    var autoAttachDebugger: Boolean
-        get() = state.autoAttachDebugger
-        set(value) { state.autoAttachDebugger = value }
-
     var autoReconnectDebugger: Boolean
         get() = state.autoReconnectDebugger
         set(value) { state.autoReconnectDebugger = value }
@@ -73,6 +70,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var debugReconnectDelayMs: Long
         get() = state.debugReconnectDelayMs
         set(value) { state.debugReconnectDelayMs = value }
+
+    var clangFormatPathKind: ClangFormatPathKind
+        get() = state.clangFormatPathKind
+        set(value) { state.clangFormatPathKind = value }
 
     var clangFormatPath: String
         get() = state.clangFormatPath

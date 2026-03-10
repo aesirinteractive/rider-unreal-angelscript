@@ -1,20 +1,40 @@
 package com.aesirinteractive.angelscript
 
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.ExternalFormatProcessor
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.ByteArrayInputStream
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.util.concurrent.TimeUnit
 import javax.xml.parsers.SAXParserFactory
+
+private val LOG = logger<AngelscriptExternalFormatter>()
 
 class AngelscriptExternalFormatter : ExternalFormatProcessor {
 
     companion object {
+        @Volatile private var cachedClangFormatPath: String? = null
+        @Volatile private var cachedClangFormatPathKind: ClangFormatPathKind? = null
+        @Volatile private var cachedClangFormatCustomPath: String? = null
+
+        fun clearClangFormatCache() {
+            cachedClangFormatPath = null
+            cachedClangFormatPathKind = null
+            cachedClangFormatCustomPath = null
+            LOG.info("clang-format: cache cleared")
+        }
+
         private val FORMAT_STRING_PREFIX = Regex("""^[A-Za-z_]['"].*""")
         private val IN_OUT_REF           = Regex("""^.?&(in|out).*""")
         private val START_LINE_TYPED     = Regex("""^\s*\w+\s+\w+\s*\(.*""")
@@ -59,7 +79,7 @@ class AngelscriptExternalFormatter : ExternalFormatProcessor {
         val project = psi.project
         val content = document.text
 
-        val clangFormatPath = AngelscriptSettings.getInstance().clangFormatPath.ifBlank { "clang-format" }
+        val clangFormatPath = resolveClangFormat() ?: return null
         val filename = vf.path
 
         val xmlOutput = runClangFormat(clangFormatPath, filename, content) ?: return null
@@ -129,6 +149,172 @@ class AngelscriptExternalFormatter : ExternalFormatProcessor {
         return true
     }
 
+    private fun resolveClangFormat(): String? {
+        val settings = AngelscriptSettings.getInstance()
+        val kind = settings.clangFormatPathKind
+
+        // Return cached path if the kind (and for Custom, the path string) hasn't changed
+        val cached = cachedClangFormatPath
+        if (cached != null && cachedClangFormatPathKind == kind) {
+            if (kind != ClangFormatPathKind.Custom || cachedClangFormatCustomPath == settings.clangFormatPath) {
+                LOG.info("clang-format: using cached path: $cached")
+                return cached
+            }
+        }
+
+        val resolved = when (kind) {
+            ClangFormatPathKind.Bundled -> extractBundledClangFormat()
+            ClangFormatPathKind.Rider -> findRiderClangFormat()
+            ClangFormatPathKind.VisualStudio -> findVisualStudioClangFormat()
+            ClangFormatPathKind.Custom -> {
+                val path = settings.clangFormatPath
+                when {
+                    path.isBlank() -> {
+                        val msg = "clang-format: custom path is empty"
+                        LOG.warn(msg)
+                        notifyError(msg)
+                        null
+                    }
+                    !Files.exists(Path.of(path)) -> {
+                        val msg = "clang-format: custom path does not exist: $path"
+                        LOG.warn(msg)
+                        notifyError(msg)
+                        null
+                    }
+                    else -> {
+                        LOG.info("clang-format: using custom path: $path")
+                        path
+                    }
+                }
+            }
+        }
+
+        if (resolved != null) {
+            cachedClangFormatPath = resolved
+            cachedClangFormatPathKind = kind
+            cachedClangFormatCustomPath = if (kind == ClangFormatPathKind.Custom) settings.clangFormatPath else null
+        }
+
+        return resolved
+    }
+
+    private fun extractBundledClangFormat(): String? {
+        val exe = if (SystemInfo.isWindows) "clang-format.exe" else "clang-format"
+        val target = Path.of(PathManager.getPluginsPath(), "AngelscriptLsp", "clang-format", exe)
+        LOG.info("clang-format: bundled extraction target: $target")
+        if (Files.exists(target) && Files.size(target) > 0) {
+            LOG.info("clang-format: using cached bundled binary at $target (${Files.size(target)} bytes)")
+            return target.toString()
+        }
+        val resource = "/clang-format/$exe"
+        val stream = AngelscriptExternalFormatter::class.java.getResourceAsStream(resource)
+        if (stream == null) {
+            val msg = "clang-format: bundled binary not found in plugin JAR at $resource"
+            LOG.error(msg)
+            notifyError(msg)
+            return null
+        }
+        Files.createDirectories(target.parent)
+        stream.use { Files.copy(it, target, StandardCopyOption.REPLACE_EXISTING) }
+        if (SystemInfo.isUnix) target.toFile().setExecutable(true)
+        LOG.info("clang-format: extracted bundled binary to $target (${Files.size(target)} bytes)")
+        return target.toString()
+    }
+
+    private fun findRiderClangFormat(): String? {
+        val exe = if (SystemInfo.isWindows) "clang-format.exe" else "clang-format"
+        val riderHome = Path.of(PathManager.getHomePath())
+        LOG.info("clang-format: searching for Rider-bundled clang-format under $riderHome")
+
+        // Toolbox / local install: <Rider>/lib/ReSharperHost/windows-x64/clang-format.exe
+        val platformDir = when {
+            SystemInfo.isWindows -> "windows-x64"
+            SystemInfo.isMac -> "macos-arm64" // Rider ships both; try arm64 first, fall through to x64
+            else -> "linux-x64"
+        }
+        val resharpPath = riderHome.resolve("lib/ReSharperHost/$platformDir/$exe")
+        if (Files.exists(resharpPath)) {
+            LOG.info("clang-format: found Rider ReSharperHost binary at $resharpPath")
+            return resharpPath.toString()
+        }
+        if (SystemInfo.isMac) {
+            val x64 = riderHome.resolve("lib/ReSharperHost/macos-x64/$exe")
+            if (Files.exists(x64)) {
+                LOG.info("clang-format: found Rider ReSharperHost binary at $x64")
+                return x64.toString()
+            }
+        }
+
+        // Program Files install: <Rider>/r2r/<version>/<hash>/windows-x64/clang-format.exe
+        val r2rBase = riderHome.resolve("r2r")
+        if (Files.isDirectory(r2rBase)) {
+            LOG.info("clang-format: searching r2r directory $r2rBase")
+            try {
+                val candidate = Files.walk(r2rBase, 3)
+                    .filter { it.fileName.toString() == exe && Files.isRegularFile(it) }
+                    .max(Comparator.comparingLong { Files.getLastModifiedTime(it).toMillis() })
+                if (candidate.isPresent) {
+                    LOG.info("clang-format: found Rider r2r binary at ${candidate.get()}")
+                    return candidate.get().toString()
+                }
+            } catch (e: Exception) {
+                LOG.warn("clang-format: error walking r2r directory: ${e.message}")
+            }
+        }
+
+        val msg = "clang-format: could not find Rider-bundled clang-format under $riderHome"
+        LOG.warn(msg)
+        notifyError(msg)
+        return null
+    }
+
+    private fun findVisualStudioClangFormat(): String? {
+        val searchRoots = listOf(
+            Path.of("C:/Program Files/Microsoft Visual Studio"),
+            Path.of("C:/Program Files (x86)/Microsoft Visual Studio"),
+        ).filter { Files.isDirectory(it) }
+
+        if (searchRoots.isEmpty()) {
+            val msg = "clang-format: Visual Studio not found in Program Files or Program Files (x86)"
+            LOG.warn(msg)
+            notifyError(msg)
+            return null
+        }
+
+        // Prefer x64/bin over plain Llvm\bin (32-bit on some installs)
+        for (vsBase in searchRoots) {
+            LOG.info("clang-format: searching for Visual Studio clang-format under $vsBase")
+            try {
+                val candidate = Files.walk(vsBase, 7)
+                    .filter { it.fileName.toString() == "clang-format.exe" && Files.isRegularFile(it) }
+                    .max(Comparator.comparingInt { p: Path ->
+                        when {
+                            p.toString().contains("x64") -> 2
+                            p.toString().contains("Llvm\\bin") -> 1
+                            else -> 0
+                        }
+                    }.thenComparingLong { Files.getLastModifiedTime(it).toMillis() })
+                if (candidate.isPresent) {
+                    LOG.info("clang-format: found Visual Studio clang-format at ${candidate.get()}")
+                    return candidate.get().toString()
+                }
+            } catch (e: Exception) {
+                LOG.warn("clang-format: error searching Visual Studio directory $vsBase: ${e.message}")
+            }
+        }
+
+        val msg = "clang-format: clang-format.exe not found under any Visual Studio installation"
+        LOG.warn(msg)
+        notifyError(msg)
+        return null
+    }
+
+    private fun notifyError(content: String) =
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup("AngelScript LSP")
+            .createNotification("clang-format error", content, NotificationType.ERROR)
+            .notify(null)
+
     private fun runClangFormat(executable: String, filename: String, content: String): String? {
         return try {
             val process = ProcessBuilder(executable, "--output-replacements-xml", "--assume-filename=$filename")
@@ -143,18 +329,22 @@ class AngelscriptExternalFormatter : ExternalFormatProcessor {
             val exited = process.waitFor(10, TimeUnit.SECONDS)
             if (!exited) {
                 process.destroyForcibly()
-                thisLogger().warn("clang-format timed out for $filename")
+                val msg = "clang-format timed out after 10s for $filename"
+                LOG.warn(msg)
+                notifyError(msg)
                 return null
             }
 
             if (process.exitValue() != 0) {
-                thisLogger().warn("clang-format exited with ${process.exitValue()} for $filename: $stderr")
+                LOG.warn("clang-format exited with ${process.exitValue()} for $filename: $stderr")
+                notifyError("clang-format exited with ${process.exitValue()} for $filename: $stderr")
                 return null
             }
 
             stdout
         } catch (e: Exception) {
-            thisLogger().warn("Failed to run clang-format: ${e.message}")
+            LOG.warn("Failed to run clang-format: ${e.message}")
+            notifyError("Failed to run clang-format: ${e.message}")
             null
         }
     }
@@ -195,7 +385,7 @@ class AngelscriptExternalFormatter : ExternalFormatProcessor {
 
             parser.parse(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)), handler)
         } catch (e: Exception) {
-            thisLogger().warn("Failed to parse clang-format XML: ${e.message}")
+            LOG.warn("Failed to parse clang-format XML: ${e.message}")
         }
         return results
     }

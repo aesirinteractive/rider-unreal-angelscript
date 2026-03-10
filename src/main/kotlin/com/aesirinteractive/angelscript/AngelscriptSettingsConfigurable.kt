@@ -21,9 +21,10 @@ class AngelscriptSettingsConfigurable : Configurable {
     private val fileExtensionsField = JBTextField()
     private val debugHostField = JBTextField()
     private val debugPortField = JBTextField()
-    private val autoAttachCheckBox = JBCheckBox("Auto-attach AngelScript debugger when launching Unreal")
     private val autoReconnectCheckBox = JBCheckBox("Auto-reconnect debugger when connection is lost (unlimited retries)")
     private val reconnectDelayField = JBTextField()
+    private val clangFormatPathKindCombo = ComboBox(ClangFormatPathKind.entries.toTypedArray())
+    private val clangFormatPathLabel = JBLabel("clang-format path:")
     private val clangFormatPathField = JBTextField()
     private var panel: JPanel? = null
 
@@ -36,11 +37,11 @@ class AngelscriptSettingsConfigurable : Configurable {
             .addLabeledComponent(lspPathLabel, lspPathField, 1, false)
             .addLabeledComponent(customCommandLineLabel, customCommandLineField, 1, false)
             .addLabeledComponent(JBLabel("File extensions (comma-separated):"), fileExtensionsField, 1, false)
-            .addLabeledComponent(JBLabel("clang-format path:"), clangFormatPathField, 1, false)
+            .addLabeledComponent(JBLabel("clang-format source:"), clangFormatPathKindCombo, 1, false)
+            .addLabeledComponent(clangFormatPathLabel, clangFormatPathField, 1, false)
             .addSeparator()
             .addLabeledComponent(JBLabel("Debug server host:"), debugHostField, 1, false)
             .addLabeledComponent(JBLabel("Debug server port:"), debugPortField, 1, false)
-            .addComponent(autoAttachCheckBox, 1)
             .addComponent(autoReconnectCheckBox, 1)
             .addLabeledComponent(JBLabel("Reconnect delay (ms):"), reconnectDelayField, 1, false)
             .addComponentFillVertically(JPanel(), 0)
@@ -49,7 +50,18 @@ class AngelscriptSettingsConfigurable : Configurable {
         lspPathKindCombo.addActionListener { updateLspPathVisibility() }
         updateLspPathVisibility()
 
+        clangFormatPathKindCombo.addActionListener { updateClangFormatPathVisibility() }
+        updateClangFormatPathVisibility()
+
         return panel!!
+    }
+
+    private fun updateClangFormatPathVisibility() {
+        val isCustom = clangFormatPathKindCombo.selectedItem == ClangFormatPathKind.Custom
+        clangFormatPathLabel.isVisible = isCustom
+        clangFormatPathField.isVisible = isCustom
+        panel?.revalidate()
+        panel?.repaint()
     }
 
     private fun updateLspPathVisibility() {
@@ -73,6 +85,7 @@ class AngelscriptSettingsConfigurable : Configurable {
             || lspPathKindCombo.selectedItem != settings.lspPathKind
             || customCommandLineField.text != settings.customCommandLine
             || fileExtensionsField.text != settings.fileExtensions
+            || clangFormatPathKindCombo.selectedItem != settings.clangFormatPathKind
             || clangFormatPathField.text != settings.clangFormatPath
             || debugHostField.text != settings.debugHost
             || debugPortField.text != settings.debugPort.toString()
@@ -88,7 +101,9 @@ class AngelscriptSettingsConfigurable : Configurable {
         settings.lspPathKind = lspPathKindCombo.selectedItem as LspPathKind
         settings.customCommandLine = customCommandLineField.text
         settings.fileExtensions = fileExtensionsField.text
+        settings.clangFormatPathKind = clangFormatPathKindCombo.selectedItem as ClangFormatPathKind
         settings.clangFormatPath = clangFormatPathField.text
+        AngelscriptExternalFormatter.clearClangFormatCache()
         settings.debugHost = debugHostField.text
         settings.debugPort = debugPortField.text.toIntOrNull() ?: 27099
         settings.autoAttachDebugger = autoAttachCheckBox.isSelected
@@ -103,6 +118,7 @@ class AngelscriptSettingsConfigurable : Configurable {
         lspPathKindCombo.selectedItem = settings.lspPathKind
         customCommandLineField.text = settings.customCommandLine
         fileExtensionsField.text = settings.fileExtensions
+        clangFormatPathKindCombo.selectedItem = settings.clangFormatPathKind
         clangFormatPathField.text = settings.clangFormatPath
         debugHostField.text = settings.debugHost
         debugPortField.text = settings.debugPort.toString()
@@ -110,5 +126,6 @@ class AngelscriptSettingsConfigurable : Configurable {
         autoReconnectCheckBox.isSelected = settings.autoReconnectDebugger
         reconnectDelayField.text = settings.debugReconnectDelayMs.toString()
         updateLspPathVisibility()
+        updateClangFormatPathVisibility()
     }
 }
