@@ -320,8 +320,14 @@ class AngelscriptBreakpointHandler(
     }
 
     fun findBreakpointById(id: Int): XLineBreakpoint<AngelscriptBreakpointProperties>? {
-    return synchronized(breakpointIds) {
+        return synchronized(breakpointIds) {
             breakpointIds.entries.find { it.value == id }?.key
+        }
+    }
+
+    fun hasBreakpointAt(path: String, line: Int): Boolean {
+        return synchronized(breakpointIds) {
+            breakpointIds.keys.any { it.fileUrl.removePrefix("file://") == path && it.line + 1 == line }
         }
     }
 }
@@ -664,6 +670,8 @@ class AngelscriptProcess(
     }
 
     override fun sessionInitialized() {
+        session.setPauseActionSupported(true);
+
         client.onServerVersion = { version ->
             session.consoleView?.print("AngelScript debug server version: $version\n",
                 com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
@@ -681,6 +689,16 @@ class AngelscriptProcess(
         }
 
         client.onCallStack = { frames ->
+            // If we planted a run-to-cursor temporary breakpoint, remove it when we stop there
+            val rtp = runToPath
+            val rtl = runToLine
+            val topFrame = frames.firstOrNull()
+            if (rtp != null && topFrame != null && topFrame.sourcePath == rtp && topFrame.line == rtl) {
+                runToPath = null
+                runToLine = -1
+                // syncFile clears then re-sends only real breakpoints, removing the ID-0 temporary one
+                breakpointHandler.syncFile(rtp)
+            }
             // Prune expansion state for frame indices that no longer exist
             val maxFrameIdx = frames.size - 1
             expandedPaths.removeAll { path ->
@@ -893,6 +911,24 @@ class AngelscriptProcess(
     }
 
     override fun resume(context: XSuspendContext?) {
+        client.sendContinue()
+    }
+
+    // Tracks a temporary "run to cursor" breakpoint; null when not active
+    @Volatile private var runToPath: String? = null
+    @Volatile private var runToLine: Int = -1  // 1-based
+
+    override fun runToPosition(position: XSourcePosition, context: XSuspendContext?) {
+        val path = position.file.path
+        val line = position.line + 1  // XSourcePosition is 0-based, Unreal expects 1-based
+        val module = moduleNameForPath(path)
+        // Only plant a temporary breakpoint if there isn't already a user breakpoint at this line
+        if (!breakpointHandler.hasBreakpointAt(path, line)) {
+            runToPath = path
+            runToLine = line
+            // Use ID 0 — reserved for run-to-cursor, never used by the regular nextId counter (starts at 1)
+            client.sendSetBreakpoint(0, path, line, module)
+        }
         client.sendContinue()
     }
 
