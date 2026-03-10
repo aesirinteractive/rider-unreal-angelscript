@@ -1,11 +1,13 @@
 ﻿package com.aesirinteractive.angelscript
 
+import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.*
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.notification.NotificationGroupManager
@@ -22,6 +24,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.refactoring.actions.RenameElementAction;
 import com.intellij.refactoring.rename.RenameHandler
+
+private val LOG = logger<AngelscriptLspServerSupportProvider>()
 
 class AngelscriptRenameHandler : RenameHandler {
     override fun isAvailableOnDataContext(dataContext: DataContext): Boolean {
@@ -81,35 +85,90 @@ internal class AngelscriptLspServerSupportProvider : LspServerSupportProvider {
 
         override fun createCommandLine(): GeneralCommandLine {
             val settings = AngelscriptSettings.getInstance()
+
             if (settings.lspPathKind == LspPathKind.CommandLine) {
-                val tokens = ParametersList.parse(settings.customCommandLine)
-                NotificationGroupManager.getInstance()
-                    .getNotificationGroup("AngelScript LSP")
-                    .createNotification("AngelScript LSP starting", "Command: ${settings.customCommandLine}", NotificationType.INFORMATION)
-                    .notify(project)
+                val cmd = settings.customCommandLine
+                if (cmd.isBlank()) {
+                    val msg = "AngelScript LSP: custom command line is empty — cannot start server"
+                    LOG.warn(msg)
+                    notifyError("Language server not configured", msg)
+                    throw ExecutionException(msg)
+                }
+                val tokens = ParametersList.parse(cmd)
+                LOG.info("AngelScript LSP starting (CommandLine mode): $cmd")
+                notifyInfo("AngelScript LSP starting", "Command: $cmd")
                 return GeneralCommandLine(tokens.toList())
             }
+
             val node = settings.nodePath.ifBlank { "node" }
             val lsp = when (settings.lspPathKind) {
-                LspPathKind.Bundled -> extractBundledLspServer() ?: ""
-                LspPathKind.VsCode -> findDefaultLspPath() ?: ""
-                LspPathKind.Custom -> settings.lspPath
+                LspPathKind.Bundled -> {
+                    val path = extractBundledLspServer()
+                    if (path == null) {
+                        val msg = "AngelScript LSP: bundled server.js not found in plugin resources — server cannot start"
+                        LOG.error(msg)
+                        notifyError("Bundled language server not found", msg)
+                        throw ExecutionException(msg)
+                    }
+                    path
+                }
+                LspPathKind.VsCode -> {
+                    val path = findDefaultLspPath()
+                    if (path == null) {
+                        val vsExt = Path.of(System.getProperty("user.home") ?: "~", ".vscode", "extensions").toString()
+                        val msg = "AngelScript LSP: VS Code extension 'hazelight.unreal-angelscript-*' not found under $vsExt"
+                        LOG.warn(msg)
+                        notifyError("VS Code extension not found", msg)
+                        throw ExecutionException(msg)
+                    }
+                    path
+                }
+                LspPathKind.Custom -> {
+                    val path = settings.lspPath
+                    if (path.isBlank()) {
+                        val msg = "AngelScript LSP: custom server path is empty — cannot start server"
+                        LOG.warn(msg)
+                        notifyError("Language server path not configured", msg)
+                        throw ExecutionException(msg)
+                    }
+                    if (!Files.exists(Path.of(path))) {
+                        val msg = "AngelScript LSP: custom server path does not exist: $path"
+                        LOG.warn(msg)
+                        notifyError("Language server not found", msg)
+                        throw ExecutionException(msg)
+                    }
+                    path
+                }
                 LspPathKind.CommandLine -> "" // handled above
             }
-            NotificationGroupManager.getInstance()
-                .getNotificationGroup("AngelScript LSP")
-                .createNotification("AngelScript LSP starting", "Node: $node\nServer: $lsp", NotificationType.INFORMATION)
-                .notify(project)
+
+            // Verify node is resolvable (best-effort: check absolute path exists)
+            if (node != "node" && !Files.exists(Path.of(node))) {
+                val msg = "AngelScript LSP: node binary not found at '$node' — server may fail to start"
+                LOG.warn(msg)
+                notifyWarning("Node not found", msg)
+            }
+
+            LOG.info("AngelScript LSP starting (${settings.lspPathKind}): node='$node' server='$lsp'")
+            notifyInfo("AngelScript LSP starting", "Node: $node\nServer: $lsp")
             return GeneralCommandLine(node, lsp, "--stdio")
         }
 
         private fun extractBundledLspServer(): String? {
             val target = Path.of(PathManager.getPluginsPath(), "AngelscriptLsp", "lsp", "server.js")
-            if (Files.exists(target) && Files.size(target) > 0) return target.toString()
+            LOG.info("AngelScript LSP: bundled server extraction target: $target")
+            if (Files.exists(target) && Files.size(target) > 0) {
+                LOG.info("AngelScript LSP: using cached bundled server at $target (${Files.size(target)} bytes)")
+                return target.toString()
+            }
             val stream = AngelscriptLspServerSupportProvider::class.java.getResourceAsStream("/lsp/server.js")
-                ?: return null
+            if (stream == null) {
+                LOG.error("AngelScript LSP: /lsp/server.js not found in plugin JAR resources")
+                return null
+            }
             Files.createDirectories(target.parent)
             stream.use { Files.copy(it, target, StandardCopyOption.REPLACE_EXISTING) }
+            LOG.info("AngelScript LSP: extracted bundled server to $target (${Files.size(target)} bytes)")
             return target.toString()
         }
 
@@ -118,18 +177,40 @@ internal class AngelscriptLspServerSupportProvider : LspServerSupportProvider {
             val pattern = "hazelight.unreal-angelscript-*"
             val matcher = FileSystems.getDefault().getPathMatcher("glob:$pattern")
             val base = Path.of(home, ".vscode", "extensions")
-            if (!Files.isDirectory(base)) return null
-            val candidates = Files.walk(base, 1)
-                .filter {
-                    val matches = matcher.matches(it.fileName)
-                    matches
-                }
+            LOG.info("AngelScript LSP: searching for VS Code extension under $base")
+            if (!Files.isDirectory(base)) {
+                LOG.warn("AngelScript LSP: VS Code extensions directory not found: $base")
+                return null
+            }
+            val candidates = Files.walk(base, 1).filter { matcher.matches(it.fileName) }
             val latest = candidates.max(Comparator.comparingLong { Files.getLastModifiedTime(it).toMillis() })
-            return latest.map {
-                val res = "$it/language-server/dist/server.js"
-                res
+            return latest.map { dir ->
+                val serverPath = "$dir/language-server/dist/server.js"
+                LOG.info("AngelScript LSP: found VS Code extension at $dir, server path: $serverPath")
+                if (!Files.exists(Path.of(serverPath))) {
+                    LOG.warn("AngelScript LSP: extension found at $dir but server.js missing at $serverPath")
+                }
+                serverPath
             }.orElse(null)
         }
+
+        private fun notifyInfo(title: String, content: String) =
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("AngelScript LSP")
+                .createNotification(title, content, NotificationType.INFORMATION)
+                .notify(project)
+
+        private fun notifyWarning(title: String, content: String) =
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("AngelScript LSP")
+                .createNotification(title, content, NotificationType.WARNING)
+                .notify(project)
+
+        private fun notifyError(title: String, content: String) =
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup("AngelScript LSP")
+                .createNotification(title, content, NotificationType.ERROR)
+                .notify(project)
     }
 
     override fun fileOpened(project: Project, file: VirtualFile, serverStarter: LspServerSupportProvider.LspServerStarter) {

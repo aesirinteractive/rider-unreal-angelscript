@@ -2,6 +2,8 @@ package com.aesirinteractive.angelscript
 
 import com.aesirinteractive.angelscript.psi.AngelscriptArgList
 import com.aesirinteractive.angelscript.psi.AngelscriptClassDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptConstructorDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptEnumDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptFunctionDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptParameterDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptPostfixExpr
@@ -10,6 +12,7 @@ import com.aesirinteractive.angelscript.psi.AngelscriptStructDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptTypeArgument
 import com.aesirinteractive.angelscript.psi.AngelscriptTypeRef
 import com.aesirinteractive.angelscript.psi.AngelscriptVariableAccessExpr
+import com.aesirinteractive.angelscript.psi.AngelscriptVariableDecl
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
@@ -21,12 +24,15 @@ class AngelscriptAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         when (element) {
             is AngelscriptFunctionDecl       -> annotateFunctionDecl(element, holder)
+            is AngelscriptConstructorDecl    -> highlight(element.identifier, holder, AngelscriptSyntaxHighlighter.FUNCTION_DECLARATION_KEY)
             is AngelscriptClassDecl          -> annotateNamedDecl(element, holder)
             is AngelscriptStructDecl         -> annotateNamedDecl(element, holder)
+            is AngelscriptEnumDecl           -> annotateNamedDecl(element, holder)
             is AngelscriptParameterDecl      -> highlight(element.identifier, holder, AngelscriptSyntaxHighlighter.PARAMETER_KEY)
+            is AngelscriptVariableDecl       -> annotateVariableDecl(element, holder)
             is AngelscriptTypeRef            -> annotateTypeRef(element, holder)
             is AngelscriptVariableAccessExpr -> annotateVariableAccessExpr(element, holder)
-            is AngelscriptPostfixExpr        -> annotatePostfixFieldAccess(element, holder)
+            is AngelscriptPostfixExpr        -> annotatePostfixExpr(element, holder)
         }
     }
 
@@ -41,24 +47,64 @@ class AngelscriptAnnotator : Annotator {
         highlight(decl.identifier, holder, AngelscriptSyntaxHighlighter.FUNCTION_DECLARATION_KEY)
     }
 
-    // ClassDecl / StructDecl: the class/struct name is the first IDENTIFIER child
+    // ClassDecl / StructDecl: highlight the class/struct name token
     private fun annotateNamedDecl(element: PsiElement, holder: AnnotationHolder) {
         val nameNode = element.node.findChildByType(AngelscriptTypes.IDENTIFIER) ?: return
         highlight(nameNode.psi, holder, typeKeyFor(nameNode.text))
     }
 
-    private fun annotateTypeRef(typeRef: AngelscriptTypeRef, holder: AnnotationHolder) {
-        // DataType is a private rule — its IDENTIFIER token appears as a direct child of TypeRef.
-        // Skip leading CONST token and any ScopeRef children (which are namespace qualifiers).
-        for (child in typeRef.children) {
-            if (child is AngelscriptScopeRef) continue
-            if (child.node.elementType == AngelscriptTypes.CONST) continue
-            if (child.node.elementType == AngelscriptTypes.IDENTIFIER) {
-                highlight(child, holder, typeKeyFor(child.text))
-                break
+    // VariableDecl: VariableItem is a private rule, so its IDENTIFIERs are inlined as flat
+    // children of VariableDecl after the TypeRef. Walk them and highlight each name.
+    // Use INSTANCE_FIELD_KEY when the decl is a class/struct member, LOCAL_VARIABLE_KEY otherwise.
+    private fun annotateVariableDecl(decl: AngelscriptVariableDecl, holder: AnnotationHolder) {
+        val key = if (isMemberContext(decl)) AngelscriptSyntaxHighlighter.INSTANCE_FIELD_KEY
+                  else AngelscriptSyntaxHighlighter.LOCAL_VARIABLE_KEY
+        // Skip the leading TypeRef (and optional UPropertyDecl/AccessSpecifier tokens).
+        // Everything after the TypeRef until SEMICOLON follows the pattern:
+        //   IDENTIFIER (EQ Expr | ArgList)? (COMMA IDENTIFIER ...)*
+        var pastTypeRef = false
+        for (child in decl.node.getChildren(null)) {
+            if (!pastTypeRef) {
+                if (child.psi is AngelscriptTypeRef) pastTypeRef = true
+                continue
             }
-            // Once we encounter something else (e.g. PrimitiveType keyword, '?', 'auto'),
-            // stop — no identifier to highlight.
+            if (child.elementType == AngelscriptTypes.IDENTIFIER) {
+                highlight(child.psi, holder, key)
+            }
+        }
+    }
+
+    // Returns true if the nearest enclosing declaration scope is a class, struct, or enum body
+    // (i.e. the VariableDecl is a member field, not a local variable).
+    private fun isMemberContext(decl: AngelscriptVariableDecl): Boolean {
+        var node = decl.parent
+        while (node != null) {
+            when (node) {
+                is AngelscriptClassDecl,
+                is AngelscriptStructDecl,
+                is AngelscriptEnumDecl -> return true
+                // A function or constructor body — it's a local
+                is AngelscriptFunctionDecl,
+                is AngelscriptConstructorDecl -> return false
+            }
+            node = node.parent
+        }
+        return false
+    }
+
+    private fun annotateTypeRef(typeRef: AngelscriptTypeRef, holder: AnnotationHolder) {
+        // DataType is a private rule — its content is inlined as flat ASTNode children of TypeRef.
+        // Must use node.getChildren() to see leaf tokens; .children only returns composite PSI nodes
+        // and would miss the IDENTIFIER leaf entirely.
+        // Walk past any leading CONST token and ScopeRef composite, then check the DataType slot.
+        for (child in typeRef.node.getChildren(null)) {
+            val type = child.elementType
+            if (type == AngelscriptTypes.CONST || type == TokenType.WHITE_SPACE) continue
+            if (child.psi is AngelscriptScopeRef) continue
+            if (type == AngelscriptTypes.IDENTIFIER) {
+                highlight(child.psi, holder, typeKeyFor(child.text))
+            }
+            // PrimitiveType keyword, '?', 'auto', or TypeArgument — stop either way
             break
         }
     }
@@ -70,42 +116,99 @@ class AngelscriptAnnotator : Annotator {
         return AngelscriptSyntaxHighlighter.TYPE_REF_KEY
     }
 
-    // VariableAccessExpr: function call if parent PostfixExpr has ArgList, otherwise check Unreal type pattern
+    // VariableAccessExpr: the base name of a PostfixExpr chain, optionally preceded by a ScopeRef.
+    // - ScopeRef identifiers (e.g. "FMath" in "FMath::Abs(t)") get typeKeyFor coloring.
+    // - If the PostfixExpr's first suffix is a call → FUNCTION_CALL_KEY on the main identifier.
+    // - If the name looks like a type (Unreal prefix) → UNREAL_TYPE_KEY / TYPE_REF_KEY.
+    // - Otherwise → LOCAL_VARIABLE_KEY.
     private fun annotateVariableAccessExpr(expr: AngelscriptVariableAccessExpr, holder: AnnotationHolder) {
-        val parent = expr.parent
-        if (parent is AngelscriptPostfixExpr && parent.argListList.isNotEmpty()) {
-            highlight(expr.identifier, holder, AngelscriptSyntaxHighlighter.FUNCTION_CALL_KEY)
-        } else {
-            val key = typeKeyFor(expr.identifier.text)
-            if (key != AngelscriptSyntaxHighlighter.TYPE_REF_KEY) {
-                highlight(expr.identifier, holder, key)
+        // Highlight each identifier inside the ScopeRef using type coloring
+        val scopeRef = expr.scopeRef
+        if (scopeRef != null) {
+            for (child in scopeRef.node.getChildren(null)) {
+                if (child.elementType == AngelscriptTypes.IDENTIFIER) {
+                    highlight(child.psi, holder, typeKeyFor(child.text))
+                }
             }
         }
+
+        val parent = expr.parent
+        val key = if (parent is AngelscriptPostfixExpr && isCallSuffix(parent, expr)) {
+            AngelscriptSyntaxHighlighter.FUNCTION_CALL_KEY
+        } else {
+            val name = expr.identifier.text
+            val typeKey = typeKeyFor(name)
+            if (typeKey != AngelscriptSyntaxHighlighter.TYPE_REF_KEY) typeKey
+            else AngelscriptSyntaxHighlighter.LOCAL_VARIABLE_KEY
+        }
+        highlight(expr.identifier, holder, key)
     }
 
-    // DOT IDENTIFIER pairs inside PostfixExpr = field or method access
-    private fun annotatePostfixFieldAccess(expr: AngelscriptPostfixExpr, holder: AnnotationHolder) {
-        var prevWasDot = false
-        for (child in expr.node.getChildren(null)) {
-            when {
-                child.elementType == AngelscriptTypes.DOT -> prevWasDot = true
-                prevWasDot && child.elementType == AngelscriptTypes.IDENTIFIER -> {
-                    // Check next sibling to distinguish method call from field access
-                    val next = child.treeNext
-                    val isCall = next?.elementType == AngelscriptTypes.LPAREN
-                              || next?.psi is AngelscriptTypeArgument
-                              || next?.psi is AngelscriptArgList
+    // Returns true if the first PostfixPart after the VariableAccessExpr primary is a CallSuffix
+    // (ArgList, optionally preceded by TypeArgument). Checks flat children of the PostfixExpr.
+    private fun isCallSuffix(postfix: AngelscriptPostfixExpr, primary: AngelscriptVariableAccessExpr): Boolean {
+        var seenPrimary = false
+        for (child in postfix.node.getChildren(null)) {
+            if (!seenPrimary) {
+                if (child.psi === primary) seenPrimary = true
+                continue
+            }
+            // Skip whitespace
+            if (child.elementType == TokenType.WHITE_SPACE) continue
+            // TypeArgument then ArgList = generic call
+            if (child.psi is AngelscriptTypeArgument) return true
+            // ArgList directly = plain call
+            if (child.psi is AngelscriptArgList) return true
+            // Anything else (DOT, LBRACK, COLONCOLON, etc.) means the next suffix is not a call
+            return false
+        }
+        return false
+    }
+
+    // PostfixExpr: annotate DOT+IDENTIFIER pairs as field access or method calls,
+    // and COLONCOLON+IDENTIFIER pairs as namespace/scope references.
+    private fun annotatePostfixExpr(expr: AngelscriptPostfixExpr, holder: AnnotationHolder) {
+        val children = expr.node.getChildren(null)
+        var i = 0
+        while (i < children.size) {
+            val child = children[i]
+            when (child.elementType) {
+                AngelscriptTypes.DOT -> {
+                    // Peek at the next non-whitespace sibling: should be IDENTIFIER
+                    var j = i + 1
+                    while (j < children.size && children[j].elementType == TokenType.WHITE_SPACE) j++
+                    if (j >= children.size || children[j].elementType != AngelscriptTypes.IDENTIFIER) {
+                        i = j
+                        continue
+                    }
+                    val ident = children[j]
+                    // Determine if followed by a call suffix (TypeArgument or ArgList)
+                    var k = j + 1
+                    while (k < children.size && children[k].elementType == TokenType.WHITE_SPACE) k++
+                    val afterIdent = if (k < children.size) children[k] else null
+                    val isCall = afterIdent?.psi is AngelscriptTypeArgument
+                              || afterIdent?.psi is AngelscriptArgList
                     highlight(
-                        child.psi,
+                        ident.psi,
                         holder,
                         if (isCall) AngelscriptSyntaxHighlighter.FUNCTION_CALL_KEY
                         else AngelscriptSyntaxHighlighter.INSTANCE_FIELD_KEY
                     )
-                    prevWasDot = false
+                    i = j + 1
+                    continue
                 }
-                child.elementType == TokenType.WHITE_SPACE -> { /* skip whitespace */ }
-                else -> prevWasDot = false
+                AngelscriptTypes.COLONCOLON -> {
+                    // ScopeSuffix: ::IDENTIFIER — highlight as a type/namespace reference
+                    var j = i + 1
+                    while (j < children.size && children[j].elementType == TokenType.WHITE_SPACE) j++
+                    if (j < children.size && children[j].elementType == AngelscriptTypes.IDENTIFIER) {
+                        highlight(children[j].psi, holder, AngelscriptSyntaxHighlighter.TYPE_REF_KEY)
+                        i = j + 1
+                        continue
+                    }
+                }
             }
+            i++
         }
     }
 }

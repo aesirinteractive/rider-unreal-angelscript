@@ -224,30 +224,164 @@ internal class AngelscriptColorSettingsPage : ColorSettingsPage {
 
     override fun getDemoText(): kotlin.String {
         return """
-<className>UInventoryViewModel</className> : <typeRef>UObject</typeRef>
-{
-    <typeRef>TArray</typeRef><<typeRef>FItem</typeRef>> <field>Items</field>;
+// Line comment
+#define WITH_EDITOR
 
-    void <funcDecl>GetItem</funcDecl>(<typeRef>int</typeRef> <param>index</param>)
+typedef float float32;
+
+namespace Math
+{
+    float <funcDecl>Lerp</funcDecl>(float <param>a</param>, float <param>b</param>, float <param>t</param>)
     {
-        <typeRef>FItem</typeRef> result = <funcCall>GetItems</funcCall>()[<param>index</param>];
-        result.<field>location</field>.<field>x</field> += 1;
-        
-        UObject result = <funcCall>GetItems</funcCall>()[<param>index</param>];
-        result.<field>location</field>.<field>x</field> += 1;
+        return <param>a</param> + (<param>b</param> - <param>a</param>) * <param>t</param>;
     }
 }
+
+enum <unrealType>EItemRarity</unrealType> { Common, Uncommon, Rare = 10 }
+
+UENUM()
+enum <unrealType>ESlotType</unrealType> { Equipment, Consumable }
+
+struct <unrealType>FItemData</unrealType>
+{
+    int <field>Count</field>;
+    float <field>Weight</field>;
+}
+
+UCLASS()
+class <unrealType>UInventoryComponent</unrealType> : <unrealType>UActorComponent</unrealType>
+{
+    UPROPERTY(EditAnywhere)
+    <unrealType>TArray</unrealType><<unrealType>FItemData</unrealType>> <field>Items</field>;
+
+    UPROPERTY(BlueprintReadOnly, meta=(ClampMin=0))
+    int <field>Capacity</field> = 20;
+
+    default <localVar>Capacity</localVar> = 10;
+
+    <funcDecl>UInventoryComponent</funcDecl>()
+    {
+    }
+
+    UFUNCTION(BlueprintCallable)
+    bool <funcDecl>AddItem</funcDecl>(const <unrealType>FItemData</unrealType>& <param>Item</param>, int <param>Count</param> = 1)
+    {
+        if (<localVar>Items</localVar>.<funcCall>Num</funcCall>() >= <localVar>Capacity</localVar>)
+            return false;
+        <localVar>Items</localVar>.<funcCall>Add</funcCall>(<param>Item</param>);
+        return true;
+    }
+
+    private int <funcDecl>FindSlot</funcDecl>(<unrealType>EItemRarity</unrealType> <param>Rarity</param>) const
+    {
+        // Local variable declarations
+        int <localVar>index</localVar> = 0;
+        float <localVar>best</localVar> = 0.0, <localVar>worst</localVar> = 1.0;
+        auto <localVar>count</localVar> = <localVar>Items</localVar>.<funcCall>Num</funcCall>();
+        <unrealType>FItemData</unrealType>@ <localVar>found</localVar> = nullptr;
+
+        // for / foreach / while / do-while
+        for (int <localVar>i</localVar> = 0; <localVar>i</localVar> < <localVar>count</localVar>; <localVar>i</localVar>++)
+        {
+            <unrealType>FItemData</unrealType> <localVar>entry</localVar> = <localVar>Items</localVar>[<localVar>i</localVar>];
+            if (<localVar>entry</localVar>.<field>Weight</field> > <localVar>best</localVar>)
+                <localVar>best</localVar> = <localVar>entry</localVar>.<field>Weight</field>;
+        }
+
+        for (<unrealType>FItemData</unrealType> <localVar>item</localVar> : <localVar>Items</localVar>)
+        {
+            <localVar>index</localVar>++;
+            if (<localVar>item</localVar>.<field>Count</field> == 0)
+                continue;
+            if (<localVar>item</localVar>.<field>Count</field> > 5)
+                break;
+        }
+
+        while (<localVar>index</localVar> > 0)
+            <localVar>index</localVar>--;
+
+        do { <localVar>index</localVar>++; } while (<localVar>index</localVar> < 3);
+
+        // switch / case / default
+        switch (<param>Rarity</param>)
+        {
+            case <unrealType>EItemRarity</unrealType>::<typeRef>Common</typeRef>:
+                return 0;
+            case <unrealType>EItemRarity</unrealType>::<typeRef>Rare</typeRef>:
+                return 1;
+            default:
+                return -1;
+        }
+    }
+
+    protected <unrealType>FVector</unrealType> <funcDecl>GetOffset</funcDecl>(int <param>slot</param>) override
+    {
+        // Arithmetic, bitwise, shift, logical operators
+        int <localVar>x</localVar> = (<param>slot</param> + 2) * 3 - 1;
+        int <localVar>flags</localVar> = <localVar>x</localVar> & 0xFF | (<localVar>x</localVar> ^ 0x0F) << 2;
+        bool <localVar>ok</localVar> = <localVar>x</localVar> > 0 && <localVar>flags</localVar> != 0 || not false;
+
+        // Ternary, assignment operators, unreal-type cast
+        float <localVar>t</localVar> = <localVar>ok</localVar> ? 1.0 : 0.0;
+        <localVar>t</localVar> += <typeRef>Math</typeRef>::<funcCall>Lerp</funcCall>(0.0, 1.0, <localVar>t</localVar>);
+        <unrealType>FVector</unrealType> <localVar>result</localVar> = <unrealType>FVector</unrealType>(<localVar>t</localVar>, 0.0, 0.0);
+
+        // C-style cast and generic call
+        int <localVar>casted</localVar> = int(<localVar>t</localVar>);
+        <unrealType>UObject</unrealType>@ <localVar>obj</localVar> = <funcCall>Cast</funcCall><<unrealType>UObject</unrealType>>(<localVar>result</localVar>);
+        <unrealType>AActor</unrealType>@ <localVar>actor</localVar> = <funcCall>Cast</funcCall><<unrealType>AActor</unrealType>>(<localVar>obj</localVar>);
+
+        // String and bool literals, nullptr, string concat
+        string <localVar>msg</localVar> = "Hello" " World";
+        bool <localVar>flag</localVar> = true;
+        <unrealType>UObject</unrealType>@ <localVar>none</localVar> = nullptr;
+
+        // PostfixExpr: scope suffix, chained field/method, subscript, postfix update
+        <localVar>result</localVar>.<field>X</field> = <unrealType>FMath</unrealType>::<funcCall>Abs</funcCall>(<localVar>t</localVar>);
+        <localVar>result</localVar>.<field>Y</field> = <localVar>Items</localVar>[0].<field>Weight</field>;
+        <localVar>result</localVar>.<field>Z</field> = <localVar>t</localVar>++;
+
+        // Init-list expression
+        <unrealType>FItemData</unrealType> <localVar>blank</localVar> = <unrealType>FItemData</unrealType> = { 0, 0.0 };
+
+        // is / !is operators
+        bool <localVar>isActor</localVar> = <localVar>obj</localVar> is <unrealType>AActor</unrealType>;
+        bool <localVar>notActor</localVar> = <localVar>obj</localVar> !is <unrealType>AActor</unrealType>;
+
+        // Named argument
+        <funcCall>AddItem</funcCall>(Item: <localVar>blank</localVar>, Count: 1);
+
+        return <localVar>result</localVar>;
+    }
+}
+
+event void <funcDecl>OnItemAdded</funcDecl>(<unrealType>FItemData</unrealType> <param>item</param>);
+delegate void <funcDecl>FItemDelegate</funcDecl>(<unrealType>FItemData</unrealType> <param>item</param>);
+
+mixin void <funcDecl>PrintCount</funcDecl>()
+{
+    int <localVar>n</localVar> = <funcCall>GetCount</funcCall>();
+}
+
+#if WITH_EDITOR
+void <funcDecl>EditorOnly</funcDecl>()
+{
+    int <localVar>x</localVar> = 1;
+}
+#endif
         """.trimIndent()
     }
 
     override fun getAdditionalHighlightingTagToDescriptorMap(): kotlin.collections.MutableMap<kotlin.String?, TextAttributesKey?> {
         return mutableMapOf(
-            "className" to AngelscriptSyntaxHighlighter.CLASS_NAME_KEY,
-            "funcDecl"  to AngelscriptSyntaxHighlighter.FUNCTION_DECLARATION_KEY,
-            "funcCall"  to AngelscriptSyntaxHighlighter.FUNCTION_CALL_KEY,
-            "param"     to AngelscriptSyntaxHighlighter.PARAMETER_KEY,
-            "field"     to AngelscriptSyntaxHighlighter.INSTANCE_FIELD_KEY,
-            "typeRef"   to AngelscriptSyntaxHighlighter.TYPE_REF_KEY,
+            "className"  to AngelscriptSyntaxHighlighter.CLASS_NAME_KEY,
+            "funcDecl"   to AngelscriptSyntaxHighlighter.FUNCTION_DECLARATION_KEY,
+            "funcCall"   to AngelscriptSyntaxHighlighter.FUNCTION_CALL_KEY,
+            "param"      to AngelscriptSyntaxHighlighter.PARAMETER_KEY,
+            "field"      to AngelscriptSyntaxHighlighter.INSTANCE_FIELD_KEY,
+            "typeRef"    to AngelscriptSyntaxHighlighter.TYPE_REF_KEY,
+            "unrealType" to AngelscriptSyntaxHighlighter.UNREAL_TYPE_KEY,
+            "localVar"   to AngelscriptSyntaxHighlighter.LOCAL_VARIABLE_KEY,
         )
     }
 
