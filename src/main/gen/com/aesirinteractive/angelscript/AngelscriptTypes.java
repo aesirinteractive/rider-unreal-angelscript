@@ -37,6 +37,9 @@ public interface AngelscriptTypes {
   IElementType FOREACH_STATEMENT = new AngelscriptElementType("FOREACH_STATEMENT");
   IElementType FOR_STATEMENT = new AngelscriptElementType("FOR_STATEMENT");
   IElementType FUNCTION_DECL = new AngelscriptElementType("FUNCTION_DECL");
+  IElementType F_STRING_EXPR = new AngelscriptElementType("F_STRING_EXPR");
+  IElementType F_STRING_FORMAT_SPEC = new AngelscriptElementType("F_STRING_FORMAT_SPEC");
+  IElementType F_STRING_INTERP = new AngelscriptElementType("F_STRING_INTERP");
   IElementType IF_DEF_BLOCK = new AngelscriptElementType("IF_DEF_BLOCK");
   IElementType IF_DEF_BRANCH = new AngelscriptElementType("IF_DEF_BRANCH");
   IElementType IF_STATEMENT = new AngelscriptElementType("IF_STATEMENT");
@@ -110,6 +113,13 @@ public interface AngelscriptTypes {
   IElementType FINAL_KW = new AngelscriptTokenType("final");
   IElementType FLOAT_KW = new AngelscriptTokenType("float");
   IElementType FOR = new AngelscriptTokenType("for");
+  IElementType FSTRING_COLON = new AngelscriptTokenType("FSTRING_COLON");
+  IElementType FSTRING_END = new AngelscriptTokenType("FSTRING_END");
+  IElementType FSTRING_FORMAT_TEXT = new AngelscriptTokenType("FSTRING_FORMAT_TEXT");
+  IElementType FSTRING_LBRACE = new AngelscriptTokenType("FSTRING_LBRACE");
+  IElementType FSTRING_RBRACE = new AngelscriptTokenType("FSTRING_RBRACE");
+  IElementType FSTRING_START = new AngelscriptTokenType("FSTRING_START");
+  IElementType FSTRING_TEXT = new AngelscriptTokenType("FSTRING_TEXT");
   IElementType GT = new AngelscriptTokenType(">");
   IElementType GTEQ = new AngelscriptTokenType(">=");
   IElementType IDENTIFIER = new AngelscriptTokenType("IDENTIFIER");
@@ -280,6 +290,15 @@ public interface AngelscriptTypes {
       }
       else if (type == FUNCTION_DECL) {
         return new AngelscriptFunctionDeclImpl(node);
+      }
+      else if (type == F_STRING_EXPR) {
+        return new AngelscriptFStringExprImpl(node);
+      }
+      else if (type == F_STRING_FORMAT_SPEC) {
+        return new AngelscriptFStringFormatSpecImpl(node);
+      }
+      else if (type == F_STRING_INTERP) {
+        return new AngelscriptFStringInterpImpl(node);
       }
       else if (type == IF_DEF_BLOCK) {
         return new AngelscriptIfDefBlockImpl(node);

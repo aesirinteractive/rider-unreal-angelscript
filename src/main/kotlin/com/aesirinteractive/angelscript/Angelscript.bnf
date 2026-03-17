@@ -24,6 +24,15 @@
     STRING_LITERAL
     BOOL_LITERAL
 
+    // F-string tokens
+    FSTRING_START
+    FSTRING_END
+    FSTRING_TEXT
+    FSTRING_LBRACE
+    FSTRING_RBRACE
+    FSTRING_COLON
+    FSTRING_FORMAT_TEXT
+
     // Brackets
     LBRACE='{'
     RBRACE='}'
@@ -409,7 +418,7 @@ private BlockItem_recover ::= !(RBRACE | IF | WHILE | FOR | RETURN | BREAK | CON
                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
                                | PLUSPLUS | MINUSMINUS | MINUS | EXCL | AT | TILDE | LPAREN
-                               | NUMBER_LITERAL | STRING_LITERAL | BOOL_LITERAL | NULLPTR_KW
+                               | NUMBER_LITERAL | STRING_LITERAL | FSTRING_START | BOOL_LITERAL | NULLPTR_KW
                                | IDENTIFIER | COMMENT
                                | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>)
 
@@ -496,6 +505,7 @@ private PostfixUpdate  ::= MINUSMINUS | PLUSPLUS
 PrimaryExpr ::= VariableAccessExpr
               | InitListExpr
               | StringConcatExpr
+              | FStringExpr
               | number_literal
               | string_literal
               | bool_literal
@@ -511,6 +521,23 @@ StringConcatExpr ::= string_literal string_literal+
 // The lexer consumes any identifier prefix (n"", f"", etc.) as part of STRING_LITERAL,
 // so all string forms reduce to a single STRING_LITERAL token here.
 private string_literal ::= STRING_LITERAL
+
+// F-string: f"text {expr} text {expr :spec} text"
+// The lexer emits FSTRING_START/END for the delimiters, FSTRING_TEXT for literal segments,
+// and FSTRING_LBRACE/RBRACE around each interpolation.
+FStringExpr ::= FSTRING_START fstring_content* FSTRING_END {
+  pin = 1
+}
+
+private fstring_content ::= FSTRING_TEXT | FStringInterp
+
+FStringInterp ::= FSTRING_LBRACE Expr EQ? FStringFormatSpec? FSTRING_RBRACE {
+  pin = 1
+}
+
+FStringFormatSpec ::= FSTRING_COLON FSTRING_FORMAT_TEXT? {
+  pin = 1
+}
 
 private number_literal ::= NUMBER_LITERAL
 private bool_literal   ::= BOOL_LITERAL

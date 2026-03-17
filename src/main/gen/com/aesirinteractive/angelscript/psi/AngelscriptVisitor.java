@@ -111,6 +111,18 @@ public class AngelscriptVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitFStringExpr(@NotNull AngelscriptFStringExpr o) {
+    visitExpr(o);
+  }
+
+  public void visitFStringFormatSpec(@NotNull AngelscriptFStringFormatSpec o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFStringInterp(@NotNull AngelscriptFStringInterp o) {
+    visitPsiElement(o);
+  }
+
   public void visitForStatement(@NotNull AngelscriptForStatement o) {
     visitPsiElement(o);
   }
