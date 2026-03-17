@@ -29,9 +29,9 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var logDebugMessages: Boolean = false,
         var focusRiderWhenBreaking: Boolean = true,
         var cppHeaderResolutionEnabled: Boolean = false,
-        var cppFunctionPattern: String = """UFUNCTION\(.*?\n.*?NAME\s*\(""",
-        var cppClassPattern: String = """U(?:CLASS|STRUCT|INTERFACE)\(.*?\n.*?(?:class|struct)\s+(?:\w+\s+)?NAME\b""",
-        var cppEnumPattern: String = """UENUM\(.*?\n.*?enum(?:\s+class)?\s+NAME\b""",
+        var cppFunctionPattern: String = """UFUNCTION\(.*?\r?\n.*?NAME\s*\(""",
+        var cppClassPattern: String = """U(?:CLASS|STRUCT|INTERFACE)\(.*?\r?\n.*?(?:class|struct)\s+(?:\w+\s+)?NAME\b""",
+        var cppEnumPattern: String = """UENUM\(.*?\r?\n.*?enum(?:\s+class)?\s+NAME\b""",
         var cppHeaderScanParallelism: Int = 10,
     )
 
