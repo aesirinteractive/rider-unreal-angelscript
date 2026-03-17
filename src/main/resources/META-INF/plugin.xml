@@ -65,6 +65,10 @@
                 language="AngelsScript"
                 implementationClass="com.aesirinteractive.angelscript.AngelscriptAnnotator"/>
 
+        <psi.referenceContributor
+                language=""
+                implementation="com.aesirinteractive.angelscript.AngelscriptReferenceContributor"/>
+
         <externalFormatProcessor
                 id="ANGELSCRIPT_CLANGD_FORMATTER"
                 implementation="com.aesirinteractive.angelscript.AngelscriptExternalFormatter"/>

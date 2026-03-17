@@ -8,6 +8,7 @@
   psiImplClassSuffix="Impl"
   psiPackage="com.aesirinteractive.angelscript.psi"
   psiImplPackage="com.aesirinteractive.angelscript.psi.impl"
+  psiImplUtilClass="com.aesirinteractive.angelscript.AngelscriptPsiImplUtil"
 
   elementTypeHolderClass="com.aesirinteractive.angelscript.AngelscriptTypes"
   elementTypeClass="com.aesirinteractive.angelscript.AngelscriptElementType"
@@ -365,7 +366,11 @@ VariableDecl ::= AccessSpecifier?
                  TypeRef
                  TypeMod?
                  VariableItem (COMMA VariableItem)*
-                 SEMICOLON
+                 SEMICOLON {
+                    mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+                    implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+                    methods=[getName setName getNameIdentifier]
+                 }
 
 private VariableItem ::= identifier ( EQ Expr | ArgList )?
 

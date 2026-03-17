@@ -4,6 +4,7 @@ package com.aesirinteractive.angelscript.psi;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.PsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElement;
 
 public class AngelscriptVisitor extends PsiElementVisitor {
 
@@ -260,10 +261,14 @@ public class AngelscriptVisitor extends PsiElementVisitor {
   }
 
   public void visitVariableDecl(@NotNull AngelscriptVariableDecl o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitWhileStatement(@NotNull AngelscriptWhileStatement o) {
+    visitPsiElement(o);
+  }
+
+  public void visitNamedElement(@NotNull AngelscriptNamedElement o) {
     visitPsiElement(o);
   }
 

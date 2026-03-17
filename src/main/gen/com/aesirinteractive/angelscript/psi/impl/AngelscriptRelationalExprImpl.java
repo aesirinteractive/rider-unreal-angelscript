@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
 import com.aesirinteractive.angelscript.psi.*;
+import com.aesirinteractive.angelscript.AngelscriptPsiImplUtil;
 
 public class AngelscriptRelationalExprImpl extends AngelscriptExprImpl implements AngelscriptRelationalExpr {
 

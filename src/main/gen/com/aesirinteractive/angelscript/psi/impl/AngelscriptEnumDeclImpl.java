@@ -10,6 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.aesirinteractive.angelscript.psi.*;
+import com.aesirinteractive.angelscript.AngelscriptPsiImplUtil;
 
 public class AngelscriptEnumDeclImpl extends ASTWrapperPsiElement implements AngelscriptEnumDecl {
 

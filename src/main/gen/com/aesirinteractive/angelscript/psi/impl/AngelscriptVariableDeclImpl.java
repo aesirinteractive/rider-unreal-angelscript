@@ -8,10 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElementImpl;
 import com.aesirinteractive.angelscript.psi.*;
+import com.aesirinteractive.angelscript.AngelscriptPsiImplUtil;
 
-public class AngelscriptVariableDeclImpl extends ASTWrapperPsiElement implements AngelscriptVariableDecl {
+public class AngelscriptVariableDeclImpl extends AngelscriptNamedElementImpl implements AngelscriptVariableDecl {
 
   public AngelscriptVariableDeclImpl(@NotNull ASTNode node) {
     super(node);
@@ -49,6 +50,21 @@ public class AngelscriptVariableDeclImpl extends ASTWrapperPsiElement implements
   @Nullable
   public AngelscriptUPropertyDecl getUPropertyDecl() {
     return findChildByClass(AngelscriptUPropertyDecl.class);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return AngelscriptPsiImplUtil.getName(this);
+  }
+
+  @Override
+  public @NotNull PsiElement setName(@Nullable String newName) {
+    return AngelscriptPsiImplUtil.setName(this, newName);
+  }
+
+  @Override
+  public @Nullable PsiElement getNameIdentifier() {
+    return AngelscriptPsiImplUtil.getNameIdentifier(this);
   }
 
 }
