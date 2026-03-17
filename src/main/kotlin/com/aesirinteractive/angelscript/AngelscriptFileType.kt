@@ -8,7 +8,7 @@ import com.intellij.openapi.util.NlsSafe
 import org.jetbrains.annotations.NonNls
 import javax.swing.Icon
 
-class AngelscriptLanguage : Language("AngelsScript") {
+class AngelscriptLanguage : Language("AngelScript") {
 
     companion object {
         val INSTANCE: AngelscriptLanguage = AngelscriptLanguage()
@@ -17,11 +17,11 @@ class AngelscriptLanguage : Language("AngelsScript") {
 
 class AngelscriptFileType : LanguageFileType(AngelscriptLanguage.INSTANCE) {
     override fun getName(): @NonNls String {
-        return "AngelsScript"
+        return "AngelScript"
     }
 
     override fun getDescription(): @NlsContexts.Label String {
-        return "AngelsScript file"
+        return "AngelScript file"
     }
 
     override fun getDefaultExtension(): @NlsSafe String {

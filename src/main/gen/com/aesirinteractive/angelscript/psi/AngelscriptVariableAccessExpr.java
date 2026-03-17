@@ -4,6 +4,7 @@ package com.aesirinteractive.angelscript.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiReference;
 
 public interface AngelscriptVariableAccessExpr extends AngelscriptExpr {
 
@@ -12,5 +13,7 @@ public interface AngelscriptVariableAccessExpr extends AngelscriptExpr {
 
   @NotNull
   PsiElement getIdentifier();
+
+  @Nullable PsiReference getReference();
 
 }

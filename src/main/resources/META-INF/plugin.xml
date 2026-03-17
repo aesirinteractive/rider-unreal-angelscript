@@ -5,16 +5,14 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Angelscript</name>
+    <name>AngelScript</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor url="https://aesir-interactive.com">Aesir Interactive</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
-    <description><![CDATA[
-        Angelscript support for Rider
-    ]]></description>
+    <description>AngelScript support for Rider (Debugging, Language Server, Syntax Highlighting)</description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
@@ -37,12 +35,11 @@
             displayName="AngelScript"/>
         <platform.lsp.serverSupportProvider implementation="com.aesirinteractive.angelscript.AngelscriptLspServerSupportProvider"/>
         <notificationGroup id="AngelScript LSP" displayType="BALLOON"/>
-        <renameHandler implementation="com.aesirinteractive.angelscript.AngelscriptRenameHandler" />
         <fileType
-            name="AngelsScript"
+            name="AngelScript"
             implementationClass="com.aesirinteractive.angelscript.AngelscriptFileType"
             fieldName="INSTANCE"
-            language="AngelsScript"
+            language="AngelScript"
             extensions="as" />
         <configurationType implementation="com.aesirinteractive.angelscript.AngelscriptConfigurationType"/>
         <programRunner implementation="com.aesirinteractive.angelscript.AngelscriptProgramRunner"/>
@@ -52,26 +49,22 @@
         <editor.linePainter implementation="com.aesirinteractive.angelscript.AngelscriptEditorLinePainter"/>
 
         <lang.parserDefinition
-                language="AngelsScript"
+                language="AngelScript"
                 implementationClass="com.aesirinteractive.angelscript.AngelscriptParserDefinition"/>
         <lang.syntaxHighlighterFactory
-                language="AngelsScript"
+                language="AngelScript"
                 implementationClass="com.aesirinteractive.angelscript.AngelscriptSyntaxHighlighterFactory"/>
 
         <colorSettingsPage
                 implementation="com.aesirinteractive.angelscript.AngelscriptColorSettingsPage"/>
 
         <annotator
-                language="AngelsScript"
+                language="AngelScript"
                 implementationClass="com.aesirinteractive.angelscript.AngelscriptAnnotator"/>
 
         <lang.psiStructureViewFactory
-                language="AngelsScript"
+                language="AngelScript"
                 implementationClass="com.aesirinteractive.angelscript.AngelscriptStructureViewFactory"/>
-
-        <psi.referenceContributor
-                language=""
-                implementation="com.aesirinteractive.angelscript.AngelscriptReferenceContributor"/>
 
         <externalFormatProcessor
                 id="ANGELSCRIPT_CLANGD_FORMATTER"

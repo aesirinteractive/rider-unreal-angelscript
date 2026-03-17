@@ -404,7 +404,10 @@ TypeRef ::= CONST?
             ScopeRef?
             DataType
             TypeArgument*
-            ( LBRACK RBRACK | AT CONST? )*
+            ( LBRACK RBRACK | AT CONST? )* {
+  mixin="com.aesirinteractive.angelscript.AngelscriptTypeRefMixin"
+  methods=[getReference]
+}
 
 private DataType ::= PrimitiveType | QUEST | AUTO_KW | AUTO | identifier
 private PrimitiveType ::= VOID_KW
@@ -562,7 +565,10 @@ PrimaryExpr ::= VariableAccessExpr
               | null_literal
               | ParenthesizedExpr
 
-VariableAccessExpr ::= ScopeRef? identifier
+VariableAccessExpr ::= ScopeRef? identifier {
+  mixin="com.aesirinteractive.angelscript.AngelscriptVariableAccessExprMixin"
+  methods=[getReference]
+}
 
 InitListExpr ::= [TypeRef EQ] LBRACE [ Expr (COMMA Expr)* ] RBRACE
 
