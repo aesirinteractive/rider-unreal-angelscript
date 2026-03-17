@@ -52,19 +52,4 @@ public class AngelscriptVariableDeclImpl extends AngelscriptNamedElementImpl imp
     return findChildByClass(AngelscriptUPropertyDecl.class);
   }
 
-  @Override
-  public @Nullable String getName() {
-    return AngelscriptPsiImplUtil.getName(this);
-  }
-
-  @Override
-  public @NotNull PsiElement setName(@Nullable String newName) {
-    return AngelscriptPsiImplUtil.setName(this, newName);
-  }
-
-  @Override
-  public @Nullable PsiElement getNameIdentifier() {
-    return AngelscriptPsiImplUtil.getNameIdentifier(this);
-  }
-
 }

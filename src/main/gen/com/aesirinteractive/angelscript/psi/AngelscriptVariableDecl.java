@@ -20,10 +20,4 @@ public interface AngelscriptVariableDecl extends AngelscriptNamedElement {
   @Nullable
   AngelscriptUPropertyDecl getUPropertyDecl();
 
-  @Nullable String getName();
-
-  @NotNull PsiElement setName(@Nullable String newName);
-
-  @Nullable PsiElement getNameIdentifier();
-
 }

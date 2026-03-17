@@ -1174,7 +1174,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // EVENT_KW    FunctionDecl
+  // EVENT_KW FunctionDecl
   public static boolean EventDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "EventDecl")) return false;
     if (!nextTokenIs(b, EVENT_KW)) return false;

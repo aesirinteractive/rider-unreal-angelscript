@@ -8,11 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElementImpl;
 import com.aesirinteractive.angelscript.psi.*;
 import com.aesirinteractive.angelscript.AngelscriptPsiImplUtil;
 
-public class AngelscriptMixinDeclImpl extends ASTWrapperPsiElement implements AngelscriptMixinDecl {
+public class AngelscriptMixinDeclImpl extends AngelscriptNamedElementImpl implements AngelscriptMixinDecl {
 
   public AngelscriptMixinDeclImpl(@NotNull ASTNode node) {
     super(node);
@@ -38,6 +38,16 @@ public class AngelscriptMixinDeclImpl extends ASTWrapperPsiElement implements An
   @Nullable
   public AngelscriptUFunctionDecl getUFunctionDecl() {
     return findChildByClass(AngelscriptUFunctionDecl.class);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return AngelscriptPsiImplUtil.getName(this);
+  }
+
+  @Override
+  public @Nullable PsiElement getNameIdentifier() {
+    return AngelscriptPsiImplUtil.getNameIdentifier(this);
   }
 
 }

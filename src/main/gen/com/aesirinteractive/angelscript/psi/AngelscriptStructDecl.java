@@ -4,8 +4,9 @@ package com.aesirinteractive.angelscript.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElement;
 
-public interface AngelscriptStructDecl extends PsiElement {
+public interface AngelscriptStructDecl extends AngelscriptNamedElement {
 
   @NotNull
   List<AngelscriptComment> getCommentList();

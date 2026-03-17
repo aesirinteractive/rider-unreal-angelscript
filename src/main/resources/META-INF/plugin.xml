@@ -65,6 +65,10 @@
                 language="AngelsScript"
                 implementationClass="com.aesirinteractive.angelscript.AngelscriptAnnotator"/>
 
+        <lang.psiStructureViewFactory
+                language="AngelsScript"
+                implementationClass="com.aesirinteractive.angelscript.AngelscriptStructureViewFactory"/>
+
         <psi.referenceContributor
                 language=""
                 implementation="com.aesirinteractive.angelscript.AngelscriptReferenceContributor"/>

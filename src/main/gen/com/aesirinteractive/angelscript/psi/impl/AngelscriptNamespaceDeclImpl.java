@@ -8,11 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElementImpl;
 import com.aesirinteractive.angelscript.psi.*;
 import com.aesirinteractive.angelscript.AngelscriptPsiImplUtil;
 
-public class AngelscriptNamespaceDeclImpl extends ASTWrapperPsiElement implements AngelscriptNamespaceDecl {
+public class AngelscriptNamespaceDeclImpl extends AngelscriptNamedElementImpl implements AngelscriptNamespaceDecl {
 
   public AngelscriptNamespaceDeclImpl(@NotNull ASTNode node) {
     super(node);
@@ -116,6 +116,16 @@ public class AngelscriptNamespaceDeclImpl extends ASTWrapperPsiElement implement
   @NotNull
   public List<AngelscriptVariableDecl> getVariableDeclList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptVariableDecl.class);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return AngelscriptPsiImplUtil.getName(this);
+  }
+
+  @Override
+  public @Nullable PsiElement getNameIdentifier() {
+    return AngelscriptPsiImplUtil.getNameIdentifier(this);
   }
 
 }

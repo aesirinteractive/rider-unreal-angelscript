@@ -1,5 +1,9 @@
 ﻿package com.aesirinteractive.angelscript
 
+import com.aesirinteractive.angelscript.psi.AngelscriptDelegateDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptEventDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptMixinDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptNamespaceDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptVariableAccessExpr
 import com.aesirinteractive.angelscript.psi.AngelscriptVariableDecl
 import com.intellij.codeInsight.lookup.LookupElement
@@ -86,15 +90,21 @@ internal class AngelscriptParserDefinition : ParserDefinition {
 
 interface AngelscriptNamedElement : PsiNameIdentifierOwner
 
-abstract class AngelscriptNamedElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), AngelscriptNamedElement
+abstract class AngelscriptNamedElementImpl(node: ASTNode) : ASTWrapperPsiElement(node), AngelscriptNamedElement {
+    override fun getNameIdentifier(): PsiElement? =
+        node.findChildByType(AngelscriptTypes.IDENTIFIER)?.psi
+
+    override fun getName(): String? = nameIdentifier?.text
+
+    override fun setName(newName: String): PsiElement {
+        // TODO: implement rename via element factory once one exists
+        return this
+    }
+
+    override fun getTextOffset(): Int = nameIdentifier?.textOffset ?: super.getTextOffset()
+}
 
 object AngelscriptPsiImplUtil {
-
-    @JvmStatic
-    fun getName(element: AngelscriptVariableDecl): String? {
-        val keyNode: ASTNode? = element.node.findChildByType(AngelscriptTypes.IDENTIFIER)
-        return keyNode?.text
-    }
 
     @JvmStatic
     fun getName(element: AngelscriptVariableAccessExpr): String? {
@@ -102,23 +112,48 @@ object AngelscriptPsiImplUtil {
         return keyNode?.text
     }
 
+    // EventDecl / DelegateDecl / MixinDecl — delegate to the inner FunctionDecl
+
     @JvmStatic
-    fun setName(element: AngelscriptVariableDecl, newName: String?): PsiElement {
-        val keyNode: ASTNode? = element.node.findChildByType(AngelscriptTypes.IDENTIFIER)
-        if (keyNode != null) {
-//            val property: SimpleProperty =
-//                SimpleElementFactory.createProperty(element.getProject(), newName)
-//            val newKeyNode: ASTNode? = property.getFirstChild().getNode()
-//            element.getNode().replaceChild(keyNode, newKeyNode)
+    fun getName(element: AngelscriptEventDecl): String? = element.functionDecl.name
+
+    @JvmStatic
+    fun getNameIdentifier(element: AngelscriptEventDecl): PsiElement? = element.functionDecl.nameIdentifier
+
+    @JvmStatic
+    fun getName(element: AngelscriptDelegateDecl): String? = element.functionDecl.name
+
+    @JvmStatic
+    fun getNameIdentifier(element: AngelscriptDelegateDecl): PsiElement? = element.functionDecl.nameIdentifier
+
+    @JvmStatic
+    fun getName(element: AngelscriptMixinDecl): String? = element.functionDecl.name
+
+    @JvmStatic
+    fun getNameIdentifier(element: AngelscriptMixinDecl): PsiElement? = element.functionDecl.nameIdentifier
+
+    // NamespaceDecl — NamespacePath is a private rule, so its IDENTIFIER and COLONCOLON
+    // tokens are flat children of NamespaceDecl between NAMESPACE_KW and LBRACE.
+    // getName() joins them as "A::B"; getNameIdentifier() returns the first IDENTIFIER.
+
+    @JvmStatic
+    fun getName(element: AngelscriptNamespaceDecl): String? {
+        val sb = StringBuilder()
+        for (child in element.node.getChildren(null)) {
+            when (child.elementType) {
+                AngelscriptTypes.IDENTIFIER -> sb.append(child.text)
+                AngelscriptTypes.COLONCOLON -> sb.append("::")
+                AngelscriptTypes.LBRACE    -> break
+            }
         }
-        return element
+        return if (sb.isEmpty()) null else sb.toString()
     }
 
     @JvmStatic
-    fun getNameIdentifier(element: AngelscriptVariableDecl): PsiElement? {
-        val keyNode: ASTNode? = element.node.findChildByType(AngelscriptTypes.IDENTIFIER)
-        return keyNode?.psi
-    }
+    fun getNameIdentifier(element: AngelscriptNamespaceDecl): PsiElement? =
+        element.node.getChildren(null)
+            .firstOrNull { it.elementType == AngelscriptTypes.IDENTIFIER }
+            ?.psi
 }
 
 //object AngelscriptElementFactory {

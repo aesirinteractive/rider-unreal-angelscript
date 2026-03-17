@@ -233,6 +233,8 @@ PP_DefineDirective ::= PP_DEFINE
 // enum class EMyEnum { Val1 }   (scoped enum)
 EnumDecl ::= UEnumDecl? ENUM identifier LBRACE EnumVariant_with_recover* RBRACE SEMICOLON? {
   pin = 2
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
 }
 
 private EnumVariant_with_recover ::= !(RBRACE | <<eof>>) EnumVariant {
@@ -241,7 +243,10 @@ private EnumVariant_with_recover ::= !(RBRACE | <<eof>>) EnumVariant {
 }
 private EnumVariant_recover ::= !(RBRACE | IDENTIFIER | <<eof>>)
 
-EnumVariant ::= identifier (EQ Expr)? COMMA?
+EnumVariant ::= identifier (EQ Expr)? COMMA? {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
 
 // -------------------------------------------------------------------------------------------------
 // Namespaces
@@ -251,6 +256,9 @@ EnumVariant ::= identifier (EQ Expr)? COMMA?
 // namespace B::C { ... }
 NamespaceDecl ::= NAMESPACE_KW NamespacePath LBRACE NamespaceItem_with_recover* RBRACE SEMICOLON? {
   pin = 1
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+  methods=[getName getNameIdentifier]
 }
 
 private NamespacePath ::= identifier (COLONCOLON identifier)*
@@ -287,11 +295,23 @@ private Declaration ::= NamespaceDecl
 
 Comment ::= COMMENT
 
-TypedefDecl ::= TYPEDEF_KW PrimitiveType identifier SEMICOLON
+TypedefDecl ::= TYPEDEF_KW PrimitiveType identifier SEMICOLON {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
 
-ClassDecl ::= UClassDecl? CLASS identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
-StructDecl ::= UStructDecl? STRUCT identifier LBRACE StructMember_with_recover* RBRACE SEMICOLON?
-InterfaceDecl ::= UInterfaceDecl? INTERFACE_KW identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
+ClassDecl ::= UClassDecl? CLASS identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON? {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
+StructDecl ::= UStructDecl? STRUCT identifier LBRACE StructMember_with_recover* RBRACE SEMICOLON? {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
+InterfaceDecl ::= UInterfaceDecl? INTERFACE_KW identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON? {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
 
 private ClassMember_with_recover ::= !(RBRACE | <<eof>>) ClassMember {
   pin = 1
@@ -315,9 +335,21 @@ private InheritanceList ::= COLON TypeRef (COMMA TypeRef)*
 private ClassMember ::= IfDefBlock | ConstructorDecl | FunctionDecl | DefaultValueDecl | VariableDecl | Comment
 private StructMember ::= IfDefBlock | ConstructorDecl | FunctionDecl | DefaultValueDecl | VariableDecl | Comment
 
-EventDecl    ::= EVENT_KW    FunctionDecl
-DelegateDecl ::= DELEGATE_KW FunctionDecl
-MixinDecl    ::= UFunctionDecl? MIXIN_KW FunctionDecl
+EventDecl ::= EVENT_KW FunctionDecl {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+  methods=[getName getNameIdentifier]
+}
+DelegateDecl ::= DELEGATE_KW FunctionDecl {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+  methods=[getName getNameIdentifier]
+}
+MixinDecl ::= UFunctionDecl? MIXIN_KW FunctionDecl {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+  methods=[getName getNameIdentifier]
+}
 
 UFunctionDecl ::= UFUNCTION_KW MetaArgList
 UPropertyDecl ::= UPROPERTY_KW MetaArgList
@@ -335,7 +367,10 @@ private MetaArgValue ::= LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
 ConstructorDecl ::= AccessSpecifier?
                     identifier
                     ParameterList
-                    (SEMICOLON | CompoundStatement SEMICOLON?)
+                    (SEMICOLON | CompoundStatement SEMICOLON?) {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
 
 FunctionDecl ::= AccessSpecifier?
                  UFunctionDecl?
@@ -347,14 +382,20 @@ FunctionDecl ::= AccessSpecifier?
                  ParameterList
                  CONST?
                  FuncAttr?
-                 (SEMICOLON | CompoundStatement SEMICOLON?)
+                 (SEMICOLON | CompoundStatement SEMICOLON?) {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
 
 private FunctionLocation ::= (SHARED_KW | EXTERNAL_KW)+
 private AccessSpecifier  ::= PRIVATE_KW | PROTECTED_KW
 private FuncAttr         ::= OVERRIDE_KW | FINAL_KW | EXPLICIT_KW | PROPERTY_KW
 
 ParameterList ::= LPAREN [ VOID_KW | ParameterDecl (COMMA ParameterDecl)* COMMA? ] RPAREN
-ParameterDecl ::= DeclarationSpecifier identifier [ EQ Expr ]
+ParameterDecl ::= DeclarationSpecifier identifier [ EQ Expr ] {
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
 
 private DeclarationSpecifier ::= TypeRef TypeMod?
 private TypeMod ::= AND (IN | OUT | INOUT_KW)?
@@ -381,10 +422,9 @@ VariableDecl ::= AccessSpecifier?
                  TypeMod?
                  VariableItem (COMMA VariableItem)*
                  SEMICOLON {
-                    mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
-                    implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
-                    methods=[getName setName getNameIdentifier]
-                 }
+  mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
+  implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
+}
 
 private VariableItem ::= identifier ( EQ Expr | ArgList )?
 

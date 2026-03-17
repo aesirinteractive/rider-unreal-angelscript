@@ -4,10 +4,15 @@ package com.aesirinteractive.angelscript.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElement;
 
-public interface AngelscriptDelegateDecl extends PsiElement {
+public interface AngelscriptDelegateDecl extends AngelscriptNamedElement {
 
   @NotNull
   AngelscriptFunctionDecl getFunctionDecl();
+
+  @Nullable String getName();
+
+  @Nullable PsiElement getNameIdentifier();
 
 }

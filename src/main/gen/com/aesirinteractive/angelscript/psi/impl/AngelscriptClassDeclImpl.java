@@ -8,11 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.aesirinteractive.angelscript.AngelscriptTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElementImpl;
 import com.aesirinteractive.angelscript.psi.*;
 import com.aesirinteractive.angelscript.AngelscriptPsiImplUtil;
 
-public class AngelscriptClassDeclImpl extends ASTWrapperPsiElement implements AngelscriptClassDecl {
+public class AngelscriptClassDeclImpl extends AngelscriptNamedElementImpl implements AngelscriptClassDecl {
 
   public AngelscriptClassDeclImpl(@NotNull ASTNode node) {
     super(node);

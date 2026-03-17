@@ -4,8 +4,9 @@ package com.aesirinteractive.angelscript.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
+import com.aesirinteractive.angelscript.AngelscriptNamedElement;
 
-public interface AngelscriptNamespaceDecl extends PsiElement {
+public interface AngelscriptNamespaceDecl extends AngelscriptNamedElement {
 
   @NotNull
   List<AngelscriptClassDecl> getClassDeclList();
@@ -51,5 +52,9 @@ public interface AngelscriptNamespaceDecl extends PsiElement {
 
   @NotNull
   List<AngelscriptVariableDecl> getVariableDeclList();
+
+  @Nullable String getName();
+
+  @Nullable PsiElement getNameIdentifier();
 
 }
