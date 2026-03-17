@@ -2470,7 +2470,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // DeclarationSpecifier identifier [ EQ Expr ]
+  // DeclarationSpecifier identifier [ EQ ConditionalExpr ]
   public static boolean ParameterDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ParameterDecl")) return false;
     boolean r;
@@ -2482,20 +2482,20 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // [ EQ Expr ]
+  // [ EQ ConditionalExpr ]
   private static boolean ParameterDecl_2(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ParameterDecl_2")) return false;
     ParameterDecl_2_0(b, l + 1);
     return true;
   }
 
-  // EQ Expr
+  // EQ ConditionalExpr
   private static boolean ParameterDecl_2_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "ParameterDecl_2_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, EQ);
-    r = r && Expr(b, l + 1);
+    r = r && ConditionalExpr(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }

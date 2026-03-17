@@ -392,7 +392,7 @@ private AccessSpecifier  ::= PRIVATE_KW | PROTECTED_KW
 private FuncAttr         ::= OVERRIDE_KW | FINAL_KW | EXPLICIT_KW | PROPERTY_KW
 
 ParameterList ::= LPAREN [ VOID_KW | ParameterDecl (COMMA ParameterDecl)* COMMA? ] RPAREN
-ParameterDecl ::= DeclarationSpecifier identifier [ EQ Expr ] {
+ParameterDecl ::= DeclarationSpecifier identifier [ EQ ConditionalExpr ] {
   mixin="com.aesirinteractive.angelscript.AngelscriptNamedElementImpl"
   implements="com.aesirinteractive.angelscript.AngelscriptNamedElement"
 }
