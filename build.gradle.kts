@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.aesir-interactive"
-version = "0.3"
+version = "0.4"
 
 repositories {
     mavenCentral()
