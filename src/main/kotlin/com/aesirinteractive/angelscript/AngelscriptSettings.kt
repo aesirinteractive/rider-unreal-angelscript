@@ -30,8 +30,9 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var focusRiderWhenBreaking: Boolean = true,
         var cppHeaderResolutionEnabled: Boolean = false,
         var cppFunctionPattern: String = """UFUNCTION\(.*?\n.*?NAME\s*\(""",
-        var cppClassPattern: String = """(?m)^\s*(?:class|struct)\s+(?:\w+\s+)?NAME\b(?!\s*;)""",
-        var cppEnumPattern: String = """(?m)^\s*enum(?:\s+class)?\s+NAME\b(?!\s*;)""",
+        var cppClassPattern: String = """U(?:CLASS|STRUCT|INTERFACE)\(.*?\n.*?(?:class|struct)\s+(?:\w+\s+)?NAME\b""",
+        var cppEnumPattern: String = """UENUM\(.*?\n.*?enum(?:\s+class)?\s+NAME\b""",
+        var cppHeaderScanParallelism: Int = 10,
     )
 
     private var state = State()
@@ -113,6 +114,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var cppEnumPattern: String
         get() = state.cppEnumPattern
         set(value) { state.cppEnumPattern = value }
+
+    var cppHeaderScanParallelism: Int
+        get() = state.cppHeaderScanParallelism
+        set(value) { state.cppHeaderScanParallelism = value }
 
     /** Converts a pattern template (using NAME as placeholder) to a compiled Regex for [name]. */
     fun compileCppPattern(template: String, name: String): Regex =

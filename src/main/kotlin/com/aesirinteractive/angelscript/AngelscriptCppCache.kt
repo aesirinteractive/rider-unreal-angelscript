@@ -14,9 +14,7 @@ class AngelscriptCppCache(private val project: Project) {
 
     data class CacheKey(
         val name: String,
-        val functionPattern: String,
-        val classPattern: String,
-        val enumPattern: String,
+        val pattern: String,
     )
 
     private val cache = ConcurrentHashMap<CacheKey, List<SmartPsiElementPointer<PsiElement>>>()

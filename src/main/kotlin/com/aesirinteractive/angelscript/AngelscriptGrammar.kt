@@ -1,5 +1,6 @@
 package com.aesirinteractive.angelscript
 
+import com.aesirinteractive.angelscript.psi.AngelscriptArgList
 import com.aesirinteractive.angelscript.psi.AngelscriptClassDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptCompoundStatement
 import com.aesirinteractive.angelscript.psi.AngelscriptConstructorDecl
@@ -9,8 +10,10 @@ import com.aesirinteractive.angelscript.psi.AngelscriptFunctionDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptInterfaceDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptMixinDecl
 import com.aesirinteractive.angelscript.psi.AngelscriptNamespaceDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptPostfixExpr
 import com.aesirinteractive.angelscript.psi.AngelscriptScopeRef
 import com.aesirinteractive.angelscript.psi.AngelscriptStructDecl
+import com.aesirinteractive.angelscript.psi.AngelscriptTypeArgument
 import com.aesirinteractive.angelscript.psi.AngelscriptTypeRef
 import com.aesirinteractive.angelscript.psi.AngelscriptVariableAccessExpr
 import com.aesirinteractive.angelscript.psi.AngelscriptVariableDecl
@@ -161,6 +164,8 @@ object AngelscriptPsiImplUtil {
 
 // ─── Reference ───────────────────────────────────────────────────────────────
 
+enum class CppSearchKind { FUNCTION, CLASS, ENUM, NONE }
+
 internal class AngelscriptReference(
     element: PsiElement,
     textRange: TextRange,
@@ -189,19 +194,36 @@ internal class AngelscriptReference(
         // Fall back to C++ header search (only if enabled in settings)
         val settings = AngelscriptSettings.getInstance()
         if (settings.cppHeaderResolutionEnabled) {
-            return resolveCpp(project, scope, settings).toTypedArray()
+            val kind = cppSearchKind()
+            if (kind != CppSearchKind.NONE) return resolveCpp(project, scope, settings, kind).toTypedArray()
         }
         return emptyArray()
     }
 
-    /** Searches C++ header files in parallel for a declaration matching [name]. Results are cached by name+patterns. */
-    private fun resolveCpp(project: Project, scope: GlobalSearchScope, settings: AngelscriptSettings): List<ResolveResult> {
-        val key = AngelscriptCppCache.CacheKey(
-            name            = name,
-            functionPattern = settings.cppFunctionPattern,
-            classPattern    = settings.cppClassPattern,
-            enumPattern     = settings.cppEnumPattern,
-        )
+    private fun cppSearchKind(): CppSearchKind = when (myElement) {
+        is AngelscriptTypeRef -> {
+            if (AngelscriptPsiUtil.isUnrealEnumName(name)) CppSearchKind.ENUM
+            else if (AngelscriptPsiUtil.isUnrealTypeName(name)) CppSearchKind.CLASS
+            else CppSearchKind.NONE
+        }
+        is AngelscriptVariableAccessExpr -> {
+            if (AngelscriptPsiUtil.isCallPosition(myElement as AngelscriptVariableAccessExpr)) CppSearchKind.FUNCTION
+            else if (AngelscriptPsiUtil.isUnrealEnumName(name)) CppSearchKind.ENUM
+            else if (AngelscriptPsiUtil.isUnrealTypeName(name)) CppSearchKind.CLASS
+            else CppSearchKind.NONE
+        }
+        else -> CppSearchKind.NONE
+    }
+
+    /** Searches C++ header files in parallel for a declaration matching [name]. Results are cached by name+patterns+kind. */
+    private fun resolveCpp(project: Project, scope: GlobalSearchScope, settings: AngelscriptSettings, kind: CppSearchKind): List<ResolveResult> {
+        val patternTemplate = when (kind) {
+            CppSearchKind.FUNCTION -> settings.cppFunctionPattern
+            CppSearchKind.CLASS    -> settings.cppClassPattern
+            CppSearchKind.ENUM     -> settings.cppEnumPattern
+            CppSearchKind.NONE     -> return emptyList()
+        }
+        val key = AngelscriptCppCache.CacheKey(name = name, pattern = patternTemplate)
         val cppCache = AngelscriptCppCache.getInstance(project)
 
         // Cache hit: return live pointers, or empty list for a cached "not found"
@@ -212,12 +234,8 @@ internal class AngelscriptReference(
             cppCache.clear() // all pointers died (files deleted) — fall through to re-scan
         }
 
-        // Cache miss: compile patterns and scan
-        fun tryCompile(template: String): Regex? = try { settings.compileCppPattern(template, name) } catch (_: Exception) { null }
-        val functionPattern = tryCompile(settings.cppFunctionPattern)
-        val classPattern    = tryCompile(settings.cppClassPattern)
-        val enumPattern     = tryCompile(settings.cppEnumPattern)
-        if (functionPattern == null && classPattern == null && enumPattern == null) return emptyList()
+        // Cache miss: compile the active pattern and scan
+        val activePattern = try { settings.compileCppPattern(patternTemplate, name) } catch (_: Exception) { return emptyList() }
 
         val headerFiles = (FilenameIndex.getAllFilesByExt(project, "h", scope) +
                            FilenameIndex.getAllFilesByExt(project, "hpp", scope))
@@ -226,18 +244,15 @@ internal class AngelscriptReference(
 
         val elements = ConcurrentLinkedQueue<PsiElement>()
 
-        // Use the common ForkJoinPool for parallel file scanning
-        ForkJoinPool.commonPool().submit {
+        // Use a bounded ForkJoinPool to cap concurrency per settings
+        ForkJoinPool(settings.cppHeaderScanParallelism.coerceIn(1, 64)).submit {
             headerFiles.toList().parallelStream().forEach { vFile ->
                 try {
                     ApplicationManager.getApplication().runReadAction {
                         val psiFile = PsiManager.getInstance(project).findFile(vFile)
                             ?: return@runReadAction
                         val text = psiFile.text
-                        val match = functionPattern?.find(text)
-                            ?: classPattern?.find(text)
-                            ?: enumPattern?.find(text)
-                            ?: return@runReadAction
+                        val match = activePattern.find(text) ?: return@runReadAction
                         val nameOffset = match.value.lastIndexOf(name)
                         val leaf = psiFile.findElementAt(match.range.first + nameOffset)
                         if (leaf != null) elements.add(leaf)
@@ -353,5 +368,37 @@ abstract class AngelscriptTypeRefMixin(node: ASTNode)
         val name = identNode.text
         val range = TextRange.from(identNode.startOffsetInParent, identNode.textLength)
         return AngelscriptReference(this, range, name)
+    }
+}
+
+// ─── PSI Utilities ────────────────────────────────────────────────────────────
+
+object AngelscriptPsiUtil {
+
+    /** Returns true if [name] matches the Unreal Engine type naming convention
+     *  (one of U/A/F/E/T followed by an uppercase letter). */
+    fun isUnrealTypeName(name: String): Boolean =
+        name.length >= 2 && name[1].isUpperCase() && name[0] in "UAFETI"
+
+    /** Returns true if [name] matches the Unreal Engine enum naming convention (E + uppercase). */
+    fun isUnrealEnumName(name: String): Boolean =
+        name.length >= 2 && name[0] == 'E' && name[1].isUpperCase()
+
+    /** Returns true if [expr] is in function-call position, i.e. the immediately
+     *  following PostfixPart is a CallSuffix (ArgList or TypeArgument + ArgList). */
+    fun isCallPosition(expr: AngelscriptVariableAccessExpr): Boolean {
+        val postfix = expr.parent as? AngelscriptPostfixExpr ?: return false
+        var seenPrimary = false
+        for (child in postfix.node.getChildren(null)) {
+            if (!seenPrimary) {
+                if (child.psi === expr) seenPrimary = true
+                continue
+            }
+            if (child.elementType == TokenType.WHITE_SPACE) continue
+            if (child.psi is AngelscriptTypeArgument) return true
+            if (child.psi is AngelscriptArgList) return true
+            return false
+        }
+        return false
     }
 }

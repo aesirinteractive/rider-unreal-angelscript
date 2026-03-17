@@ -109,12 +109,10 @@ class AngelscriptAnnotator : Annotator {
         }
     }
 
-    private fun typeKeyFor(name: String): TextAttributesKey {
-        if (name.length >= 2 && name[1].isUpperCase() && name[0] in "UAFET") {
-            return AngelscriptSyntaxHighlighter.UNREAL_TYPE_KEY
-        }
-        return AngelscriptSyntaxHighlighter.TYPE_REF_KEY
-    }
+    private fun typeKeyFor(name: String): TextAttributesKey =
+        if (AngelscriptPsiUtil.isUnrealTypeName(name)) AngelscriptSyntaxHighlighter.UNREAL_TYPE_KEY
+        else if (AngelscriptPsiUtil.isUnrealEnumName(name)) AngelscriptSyntaxHighlighter.UNREAL_TYPE_KEY
+        else AngelscriptSyntaxHighlighter.TYPE_REF_KEY
 
     // VariableAccessExpr: the base name of a PostfixExpr chain, optionally preceded by a ScopeRef.
     // - ScopeRef identifiers (e.g. "FMath" in "FMath::Abs(t)") get typeKeyFor coloring.
@@ -133,7 +131,7 @@ class AngelscriptAnnotator : Annotator {
         }
 
         val parent = expr.parent
-        val key = if (parent is AngelscriptPostfixExpr && isCallSuffix(parent, expr)) {
+        val key = if (parent is AngelscriptPostfixExpr && AngelscriptPsiUtil.isCallPosition(expr)) {
             AngelscriptSyntaxHighlighter.FUNCTION_CALL_KEY
         } else {
             val name = expr.identifier.text
@@ -142,27 +140,6 @@ class AngelscriptAnnotator : Annotator {
             else AngelscriptSyntaxHighlighter.LOCAL_VARIABLE_KEY
         }
         highlight(expr.identifier, holder, key)
-    }
-
-    // Returns true if the first PostfixPart after the VariableAccessExpr primary is a CallSuffix
-    // (ArgList, optionally preceded by TypeArgument). Checks flat children of the PostfixExpr.
-    private fun isCallSuffix(postfix: AngelscriptPostfixExpr, primary: AngelscriptVariableAccessExpr): Boolean {
-        var seenPrimary = false
-        for (child in postfix.node.getChildren(null)) {
-            if (!seenPrimary) {
-                if (child.psi === primary) seenPrimary = true
-                continue
-            }
-            // Skip whitespace
-            if (child.elementType == TokenType.WHITE_SPACE) continue
-            // TypeArgument then ArgList = generic call
-            if (child.psi is AngelscriptTypeArgument) return true
-            // ArgList directly = plain call
-            if (child.psi is AngelscriptArgList) return true
-            // Anything else (DOT, LBRACK, COLONCOLON, etc.) means the next suffix is not a call
-            return false
-        }
-        return false
     }
 
     // PostfixExpr: annotate DOT+IDENTIFIER pairs as field access or method calls,

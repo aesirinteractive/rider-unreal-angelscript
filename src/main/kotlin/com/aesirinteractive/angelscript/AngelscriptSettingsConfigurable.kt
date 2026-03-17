@@ -10,6 +10,8 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
 import java.awt.Color
+import java.awt.FlowLayout
+import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.UIManager
@@ -39,6 +41,24 @@ class AngelscriptSettingsConfigurable : Configurable {
     private val cppClassPatternError = JBLabel().also { it.foreground = JBColor.RED; it.isVisible = false }
     private val cppEnumPatternField = JBTextField()
     private val cppEnumPatternError = JBLabel().also { it.foreground = JBColor.RED; it.isVisible = false }
+    private val cppParallelismField = JBTextField()
+    private val cppButtonsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).also { panel ->
+        val resetButton = JButton("Reset patterns to defaults").also { btn ->
+            btn.addActionListener {
+                val defaults = AngelscriptSettings.State()
+                cppFunctionPatternField.text = defaults.cppFunctionPattern
+                cppClassPatternField.text    = defaults.cppClassPattern
+                cppEnumPatternField.text     = defaults.cppEnumPattern
+            }
+        }
+        val clearCacheButton = JButton("Clear C++ symbol cache").also { btn ->
+            btn.addActionListener {
+                ProjectManager.getInstance().openProjects.forEach { AngelscriptCppCache.getInstance(it).clear() }
+            }
+        }
+        panel.add(resetButton)
+        panel.add(clearCacheButton)
+    }
     private val clangFormatPathKindCombo = ComboBox(ClangFormatPathKind.entries.toTypedArray())
     private val clangFormatPathLabel = JBLabel("clang-format path:")
     private val clangFormatPathField = JBTextField()
@@ -72,6 +92,8 @@ class AngelscriptSettingsConfigurable : Configurable {
             .addComponent(cppClassPatternError, 1)
             .addLabeledComponent(JBLabel("Enum pattern:"), cppEnumPatternField, 1, false)
             .addComponent(cppEnumPatternError, 1)
+            .addLabeledComponent(JBLabel("Max parallel file scans:"), cppParallelismField, 1, false)
+            .addComponent(cppButtonsPanel, 1)
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
@@ -153,6 +175,7 @@ class AngelscriptSettingsConfigurable : Configurable {
             || cppFunctionPatternField.text != settings.cppFunctionPattern
             || cppClassPatternField.text != settings.cppClassPattern
             || cppEnumPatternField.text != settings.cppEnumPattern
+            || cppParallelismField.text.toIntOrNull() != settings.cppHeaderScanParallelism
     }
 
     override fun apply() {
@@ -183,6 +206,7 @@ class AngelscriptSettingsConfigurable : Configurable {
         settings.cppFunctionPattern = cppFunctionPatternField.text
         settings.cppClassPattern = cppClassPatternField.text
         settings.cppEnumPattern = cppEnumPatternField.text
+        settings.cppHeaderScanParallelism = cppParallelismField.text.toIntOrNull()?.coerceIn(1, 64) ?: 10
         ProjectManager.getInstance().openProjects.forEach { AngelscriptCppCache.getInstance(it).clear() }
     }
 
@@ -206,6 +230,7 @@ class AngelscriptSettingsConfigurable : Configurable {
         cppFunctionPatternField.text = settings.cppFunctionPattern
         cppClassPatternField.text = settings.cppClassPattern
         cppEnumPatternField.text = settings.cppEnumPattern
+        cppParallelismField.text = settings.cppHeaderScanParallelism.toString()
         updateLspPathVisibility()
         updateClangFormatPathVisibility()
     }
