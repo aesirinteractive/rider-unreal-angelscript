@@ -27,7 +27,6 @@ import com.intellij.lexer.Lexer
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.search.FileTypeIndex
@@ -242,24 +241,32 @@ internal class AngelscriptReference(
 
         if (headerFiles.isEmpty()) return emptyList()
 
-        val elements = ConcurrentLinkedQueue<PsiElement>()
-
-        // Use a bounded ForkJoinPool to cap concurrency per settings
+        // Phase 1: parallel VFS scan — contentsToByteArray() is below the PSI read-lock layer
+        // and does not require a read action. Workers must NOT call runReadAction: the calling
+        // thread already holds the read lock (multiResolve() runs inside a read action), and
+        // blocking in .get() while workers try to acquire the read lock would deadlock.
+        val matchedFiles = ConcurrentLinkedQueue<VirtualFile>()
         ForkJoinPool(settings.cppHeaderScanParallelism.coerceIn(1, 64)).submit {
             headerFiles.toList().parallelStream().forEach { vFile ->
                 try {
-                    ApplicationManager.getApplication().runReadAction {
-                        val psiFile = PsiManager.getInstance(project).findFile(vFile)
-                            ?: return@runReadAction
-                        val text = psiFile.text
-                        val match = activePattern.find(text) ?: return@runReadAction
-                        val nameOffset = match.value.lastIndexOf(name)
-                        val leaf = psiFile.findElementAt(match.range.first + nameOffset)
-                        if (leaf != null) elements.add(leaf)
-                    }
+                    val text = String(vFile.contentsToByteArray(), vFile.charset)
+                    if (activePattern.containsMatchIn(text)) matchedFiles.add(vFile)
                 } catch (_: Exception) {}
             }
-        }.get() // block until all parallel tasks finish
+        }.get() // safe: workers never acquire the read lock, so no deadlock
+
+        // Phase 2: resolve PSI on the calling thread, which already holds the read lock.
+        // Re-run the regex on psiFile.text (normalised, no BOM/CRLF) for correct PSI offsets.
+        val elements = mutableListOf<PsiElement>()
+        for (vFile in matchedFiles) {
+            try {
+                val psiFile = PsiManager.getInstance(project).findFile(vFile) ?: continue
+                val match = activePattern.find(psiFile.text) ?: continue
+                val nameOffset = match.value.lastIndexOf(name)
+                val leaf = psiFile.findElementAt(match.range.first + nameOffset) ?: continue
+                elements.add(leaf)
+            } catch (_: Exception) {}
+        }
 
         // Store in cache (empty list caches "not found" to avoid repeat scans)
         val pointers = elements.map { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }
