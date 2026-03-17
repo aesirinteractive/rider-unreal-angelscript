@@ -24,6 +24,7 @@ class AngelscriptSettingsConfigurable : Configurable {
     private val autoReconnectCheckBox = JBCheckBox("Auto-reconnect debugger when connection is lost (unlimited retries)")
     private val reconnectDelayField = JBTextField()
     private val logDebugMessagesCheckBox = JBCheckBox("Log debug protocol messages to console")
+    private val focusRiderWhenBreakingCheckBox = JBCheckBox("Focus Rider when hitting a breakpoint in angelscript")
     private val clangFormatPathKindCombo = ComboBox(ClangFormatPathKind.entries.toTypedArray())
     private val clangFormatPathLabel = JBLabel("clang-format path:")
     private val clangFormatPathField = JBTextField()
@@ -48,6 +49,7 @@ class AngelscriptSettingsConfigurable : Configurable {
             .addComponent(autoReconnectCheckBox, 1)
             .addLabeledComponent(JBLabel("Reconnect delay (ms):"), reconnectDelayField, 1, false)
             .addComponent(logDebugMessagesCheckBox, 1)
+            .addComponent(focusRiderWhenBreakingCheckBox, 1)
             .addComponentFillVertically(JPanel(), 0)
             .panel
 
@@ -97,6 +99,7 @@ class AngelscriptSettingsConfigurable : Configurable {
             || autoReconnectCheckBox.isSelected != settings.autoReconnectDebugger
             || reconnectDelayField.text.toLongOrNull() != settings.debugReconnectDelayMs
             || logDebugMessagesCheckBox.isSelected != settings.logDebugMessages
+            || focusRiderWhenBreakingCheckBox.isSelected != settings.focusRiderWhenBreaking
     }
 
     override fun apply() {
@@ -115,6 +118,7 @@ class AngelscriptSettingsConfigurable : Configurable {
         settings.autoReconnectDebugger = autoReconnectCheckBox.isSelected
         settings.debugReconnectDelayMs = reconnectDelayField.text.toLongOrNull()?.coerceAtLeast(100L) ?: 2000L
         settings.logDebugMessages = logDebugMessagesCheckBox.isSelected
+        settings.focusRiderWhenBreaking = focusRiderWhenBreakingCheckBox.isSelected
     }
 
     override fun reset() {
@@ -132,6 +136,7 @@ class AngelscriptSettingsConfigurable : Configurable {
         autoReconnectCheckBox.isSelected = settings.autoReconnectDebugger
         reconnectDelayField.text = settings.debugReconnectDelayMs.toString()
         logDebugMessagesCheckBox.isSelected = settings.logDebugMessages
+        focusRiderWhenBreakingCheckBox.isSelected = settings.focusRiderWhenBreaking
         updateLspPathVisibility()
         updateClangFormatPathVisibility()
     }

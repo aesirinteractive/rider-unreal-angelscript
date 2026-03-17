@@ -16,8 +16,10 @@ import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ProgramRunner
 import com.intellij.execution.ui.RunContentDescriptor
+import com.intellij.execution.ui.RunContentManager
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.wm.WindowManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.EditorFactory
@@ -707,10 +709,18 @@ class AngelscriptProcess(
             }
             val context = AngelscriptSuspendContext(this, frames)
             // Top frame (index 0) is the active one for watch evaluation
-            activeEvaluator = (context.activeExecutionStack?.topFrame as? AngelscriptStackFrame)?.evaluator
+            activeEvaluator = (context.activeExecutionStack.topFrame as? AngelscriptStackFrame)?.evaluator
             // Collect and evaluate inline variable values for the stopped location
             collectInlineValues(frames)
             ApplicationManager.getApplication().invokeLater {
+                if (AngelscriptSettings.getInstance().focusRiderWhenBreaking) {
+                    WindowManager.getInstance().getFrame(session.project)?.apply {
+                        toFront()
+                        requestFocus()
+                    }
+                    RunContentManager.getInstance(session.project)
+                        .toFrontRunContent(DefaultDebugExecutor.getDebugExecutorInstance(), session.runContentDescriptor)
+                }
                 session.positionReached(context)
             }
         }

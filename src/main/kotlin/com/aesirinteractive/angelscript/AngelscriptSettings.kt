@@ -26,7 +26,8 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var clangFormatPathKind: ClangFormatPathKind = ClangFormatPathKind.Bundled,
         var clangFormatPath: String = "",
         var clangFormatFile: String = ".clang-format-angelscript",
-        var logDebugMessages: Boolean = false
+        var logDebugMessages: Boolean = false,
+        var focusRiderWhenBreaking: Boolean = true,
     )
 
     private var state = State()
@@ -88,6 +89,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var logDebugMessages: Boolean
         get() = state.logDebugMessages
         set(value) { state.logDebugMessages = value }
+
+    var focusRiderWhenBreaking: Boolean
+        get() = state.focusRiderWhenBreaking
+        set(value) { state.focusRiderWhenBreaking = value }
 
     fun parsedFileExtensions(): Set<String> =
         fileExtensions.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
