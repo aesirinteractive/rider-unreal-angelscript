@@ -32,6 +32,9 @@ public interface AngelscriptNamespaceDecl extends PsiElement {
   List<AngelscriptIfDefBlock> getIfDefBlockList();
 
   @NotNull
+  List<AngelscriptInterfaceDecl> getInterfaceDeclList();
+
+  @NotNull
   List<AngelscriptMixinDecl> getMixinDeclList();
 
   @NotNull

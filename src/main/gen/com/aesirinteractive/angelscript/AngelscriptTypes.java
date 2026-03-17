@@ -37,11 +37,15 @@ public interface AngelscriptTypes {
   IElementType FOREACH_STATEMENT = new AngelscriptElementType("FOREACH_STATEMENT");
   IElementType FOR_STATEMENT = new AngelscriptElementType("FOR_STATEMENT");
   IElementType FUNCTION_DECL = new AngelscriptElementType("FUNCTION_DECL");
+  IElementType F_STRING_EXPR = new AngelscriptElementType("F_STRING_EXPR");
+  IElementType F_STRING_FORMAT_SPEC = new AngelscriptElementType("F_STRING_FORMAT_SPEC");
+  IElementType F_STRING_INTERP = new AngelscriptElementType("F_STRING_INTERP");
   IElementType IF_DEF_BLOCK = new AngelscriptElementType("IF_DEF_BLOCK");
   IElementType IF_DEF_BRANCH = new AngelscriptElementType("IF_DEF_BRANCH");
   IElementType IF_STATEMENT = new AngelscriptElementType("IF_STATEMENT");
   IElementType INCLUSIVE_OR_EXPR = new AngelscriptElementType("INCLUSIVE_OR_EXPR");
   IElementType INIT_LIST_EXPR = new AngelscriptElementType("INIT_LIST_EXPR");
+  IElementType INTERFACE_DECL = new AngelscriptElementType("INTERFACE_DECL");
   IElementType LOGICAL_AND_EXPR = new AngelscriptElementType("LOGICAL_AND_EXPR");
   IElementType LOGICAL_OR_EXPR = new AngelscriptElementType("LOGICAL_OR_EXPR");
   IElementType MIXIN_DECL = new AngelscriptElementType("MIXIN_DECL");
@@ -68,6 +72,7 @@ public interface AngelscriptTypes {
   IElementType U_CLASS_DECL = new AngelscriptElementType("U_CLASS_DECL");
   IElementType U_ENUM_DECL = new AngelscriptElementType("U_ENUM_DECL");
   IElementType U_FUNCTION_DECL = new AngelscriptElementType("U_FUNCTION_DECL");
+  IElementType U_INTERFACE_DECL = new AngelscriptElementType("U_INTERFACE_DECL");
   IElementType U_PROPERTY_DECL = new AngelscriptElementType("U_PROPERTY_DECL");
   IElementType U_STRUCT_DECL = new AngelscriptElementType("U_STRUCT_DECL");
   IElementType VARIABLE_ACCESS_EXPR = new AngelscriptElementType("VARIABLE_ACCESS_EXPR");
@@ -110,6 +115,13 @@ public interface AngelscriptTypes {
   IElementType FINAL_KW = new AngelscriptTokenType("final");
   IElementType FLOAT_KW = new AngelscriptTokenType("float");
   IElementType FOR = new AngelscriptTokenType("for");
+  IElementType FSTRING_COLON = new AngelscriptTokenType("FSTRING_COLON");
+  IElementType FSTRING_END = new AngelscriptTokenType("FSTRING_END");
+  IElementType FSTRING_FORMAT_TEXT = new AngelscriptTokenType("FSTRING_FORMAT_TEXT");
+  IElementType FSTRING_LBRACE = new AngelscriptTokenType("FSTRING_LBRACE");
+  IElementType FSTRING_RBRACE = new AngelscriptTokenType("FSTRING_RBRACE");
+  IElementType FSTRING_START = new AngelscriptTokenType("FSTRING_START");
+  IElementType FSTRING_TEXT = new AngelscriptTokenType("FSTRING_TEXT");
   IElementType GT = new AngelscriptTokenType(">");
   IElementType GTEQ = new AngelscriptTokenType(">=");
   IElementType IDENTIFIER = new AngelscriptTokenType("IDENTIFIER");
@@ -120,6 +132,7 @@ public interface AngelscriptTypes {
   IElementType INT32_KW = new AngelscriptTokenType("int32");
   IElementType INT64_KW = new AngelscriptTokenType("int64");
   IElementType INT8_KW = new AngelscriptTokenType("int8");
+  IElementType INTERFACE_KW = new AngelscriptTokenType("interface");
   IElementType INT_KW = new AngelscriptTokenType("int");
   IElementType IS_KW = new AngelscriptTokenType("is");
   IElementType LBRACE = new AngelscriptTokenType("{");
@@ -185,6 +198,7 @@ public interface AngelscriptTypes {
   IElementType UINT32_KW = new AngelscriptTokenType("uint32");
   IElementType UINT64_KW = new AngelscriptTokenType("uint64");
   IElementType UINT8_KW = new AngelscriptTokenType("uint8");
+  IElementType UINTERFACE_KW = new AngelscriptTokenType("UINTERFACE");
   IElementType UINT_KW = new AngelscriptTokenType("uint");
   IElementType UPROPERTY_KW = new AngelscriptTokenType("UPROPERTY");
   IElementType USTRUCT_KW = new AngelscriptTokenType("USTRUCT");
@@ -281,6 +295,15 @@ public interface AngelscriptTypes {
       else if (type == FUNCTION_DECL) {
         return new AngelscriptFunctionDeclImpl(node);
       }
+      else if (type == F_STRING_EXPR) {
+        return new AngelscriptFStringExprImpl(node);
+      }
+      else if (type == F_STRING_FORMAT_SPEC) {
+        return new AngelscriptFStringFormatSpecImpl(node);
+      }
+      else if (type == F_STRING_INTERP) {
+        return new AngelscriptFStringInterpImpl(node);
+      }
       else if (type == IF_DEF_BLOCK) {
         return new AngelscriptIfDefBlockImpl(node);
       }
@@ -295,6 +318,9 @@ public interface AngelscriptTypes {
       }
       else if (type == INIT_LIST_EXPR) {
         return new AngelscriptInitListExprImpl(node);
+      }
+      else if (type == INTERFACE_DECL) {
+        return new AngelscriptInterfaceDeclImpl(node);
       }
       else if (type == LOGICAL_AND_EXPR) {
         return new AngelscriptLogicalAndExprImpl(node);
@@ -373,6 +399,9 @@ public interface AngelscriptTypes {
       }
       else if (type == U_FUNCTION_DECL) {
         return new AngelscriptUFunctionDeclImpl(node);
+      }
+      else if (type == U_INTERFACE_DECL) {
+        return new AngelscriptUInterfaceDeclImpl(node);
       }
       else if (type == U_PROPERTY_DECL) {
         return new AngelscriptUPropertyDeclImpl(node);

@@ -25,6 +25,15 @@
     STRING_LITERAL
     BOOL_LITERAL
 
+    // F-string tokens
+    FSTRING_START
+    FSTRING_END
+    FSTRING_TEXT
+    FSTRING_LBRACE
+    FSTRING_RBRACE
+    FSTRING_COLON
+    FSTRING_FORMAT_TEXT
+
     // Brackets
     LBRACE='{'
     RBRACE='}'
@@ -121,6 +130,7 @@
     STATIC='static'
     STRUCT='struct'
     CLASS='class'
+    INTERFACE_KW='interface'
     SUPER='super'
     TYPEDEF_KW='typedef'
     NAMESPACE_KW='namespace'
@@ -175,6 +185,7 @@
     UCLASS_KW='UCLASS'
     USTRUCT_KW='USTRUCT'
     UENUM_KW='UENUM'
+    UINTERFACE_KW='UINTERFACE'
   ]
 
   extends(".*Expr")=Expr
@@ -186,8 +197,8 @@ private ScriptItem ::= !(<<eof>>) Item {
   pin = 1
   recoverWhile = ScriptItem_recover
 }
-private ScriptItem_recover ::= !(CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-                               | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+private ScriptItem_recover ::= !(CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+                               | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
                                | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -248,8 +259,8 @@ private NamespaceItem_with_recover ::= !(RBRACE | <<eof>>) Item {
   pin = 1
   recoverWhile = NamespaceItem_recover
 }
-private NamespaceItem_recover ::= !(RBRACE | CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-                                  | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+private NamespaceItem_recover ::= !(RBRACE | CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+                                  | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
                                   | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
                                   | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
                                   | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -265,6 +276,7 @@ private Declaration ::= NamespaceDecl
                       | TypedefDecl
                       | ClassDecl
                       | StructDecl
+                      | InterfaceDecl
                       | EventDecl
                       | DelegateDecl
                       | MixinDecl
@@ -279,6 +291,7 @@ TypedefDecl ::= TYPEDEF_KW PrimitiveType identifier SEMICOLON
 
 ClassDecl ::= UClassDecl? CLASS identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
 StructDecl ::= UStructDecl? STRUCT identifier LBRACE StructMember_with_recover* RBRACE SEMICOLON?
+InterfaceDecl ::= UInterfaceDecl? INTERFACE_KW identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
 
 private ClassMember_with_recover ::= !(RBRACE | <<eof>>) ClassMember {
   pin = 1
@@ -311,6 +324,7 @@ UPropertyDecl ::= UPROPERTY_KW MetaArgList
 UClassDecl    ::= UCLASS_KW    MetaArgList
 UStructDecl   ::= USTRUCT_KW   MetaArgList
 UEnumDecl     ::= UENUM_KW     MetaArgList
+UInterfaceDecl ::= UINTERFACE_KW MetaArgList
 
 private MetaArgList ::= LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
 private MetaArg ::= identifier (EQ MetaArgValue)?
@@ -414,7 +428,7 @@ private BlockItem_recover ::= !(RBRACE | IF | WHILE | FOR | RETURN | BREAK | CON
                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
                                | PLUSPLUS | MINUSMINUS | MINUS | EXCL | AT | TILDE | LPAREN
-                               | NUMBER_LITERAL | STRING_LITERAL | BOOL_LITERAL | NULLPTR_KW
+                               | NUMBER_LITERAL | STRING_LITERAL | FSTRING_START | BOOL_LITERAL | NULLPTR_KW
                                | IDENTIFIER | COMMENT
                                | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>)
 
@@ -501,6 +515,7 @@ private PostfixUpdate  ::= MINUSMINUS | PLUSPLUS
 PrimaryExpr ::= VariableAccessExpr
               | InitListExpr
               | StringConcatExpr
+              | FStringExpr
               | number_literal
               | string_literal
               | bool_literal
@@ -516,6 +531,23 @@ StringConcatExpr ::= string_literal string_literal+
 // The lexer consumes any identifier prefix (n"", f"", etc.) as part of STRING_LITERAL,
 // so all string forms reduce to a single STRING_LITERAL token here.
 private string_literal ::= STRING_LITERAL
+
+// F-string: f"text {expr} text {expr :spec} text"
+// The lexer emits FSTRING_START/END for the delimiters, FSTRING_TEXT for literal segments,
+// and FSTRING_LBRACE/RBRACE around each interpolation.
+FStringExpr ::= FSTRING_START fstring_content* FSTRING_END {
+  pin = 1
+}
+
+private fstring_content ::= FSTRING_TEXT | FStringInterp
+
+FStringInterp ::= FSTRING_LBRACE Expr EQ? FStringFormatSpec? FSTRING_RBRACE {
+  pin = 1
+}
+
+FStringFormatSpec ::= FSTRING_COLON FSTRING_FORMAT_TEXT? {
+  pin = 1
+}
 
 private number_literal ::= NUMBER_LITERAL
 private bool_literal   ::= BOOL_LITERAL

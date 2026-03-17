@@ -112,6 +112,18 @@ public class AngelscriptVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitFStringExpr(@NotNull AngelscriptFStringExpr o) {
+    visitExpr(o);
+  }
+
+  public void visitFStringFormatSpec(@NotNull AngelscriptFStringFormatSpec o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFStringInterp(@NotNull AngelscriptFStringInterp o) {
+    visitPsiElement(o);
+  }
+
   public void visitForStatement(@NotNull AngelscriptForStatement o) {
     visitPsiElement(o);
   }
@@ -142,6 +154,10 @@ public class AngelscriptVisitor extends PsiElementVisitor {
 
   public void visitInitListExpr(@NotNull AngelscriptInitListExpr o) {
     visitExpr(o);
+  }
+
+  public void visitInterfaceDecl(@NotNull AngelscriptInterfaceDecl o) {
+    visitPsiElement(o);
   }
 
   public void visitLogicalAndExpr(@NotNull AngelscriptLogicalAndExpr o) {
@@ -241,6 +257,10 @@ public class AngelscriptVisitor extends PsiElementVisitor {
   }
 
   public void visitUFunctionDecl(@NotNull AngelscriptUFunctionDecl o) {
+    visitPsiElement(o);
+  }
+
+  public void visitUInterfaceDecl(@NotNull AngelscriptUInterfaceDecl o) {
     visitPsiElement(o);
   }
 

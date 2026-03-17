@@ -78,6 +78,12 @@ public class AngelscriptNamespaceDeclImpl extends ASTWrapperPsiElement implement
 
   @Override
   @NotNull
+  public List<AngelscriptInterfaceDecl> getInterfaceDeclList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptInterfaceDecl.class);
+  }
+
+  @Override
+  @NotNull
   public List<AngelscriptMixinDecl> getMixinDeclList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptMixinDecl.class);
   }

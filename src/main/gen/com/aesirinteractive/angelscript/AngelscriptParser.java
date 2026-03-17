@@ -38,10 +38,10 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   public static final TokenSet[] EXTENDS_SETS_ = new TokenSet[] {
     create_token_set_(ADD_EXPR, ASSIGNMENT_EXPR, BITWISE_AND_EXPR, CAST_EXPR,
       COMMA_EXPR, CONDITIONAL_EXPR, EQUALITY_EXPR, EXCLUSIVE_OR_EXPR,
-      EXPR, INCLUSIVE_OR_EXPR, INIT_LIST_EXPR, LOGICAL_AND_EXPR,
-      LOGICAL_OR_EXPR, MULTIPLY_EXPR, PARENTHESIZED_EXPR, POSTFIX_EXPR,
-      PRIMARY_EXPR, RELATIONAL_EXPR, SHIFT_EXPR, STRING_CONCAT_EXPR,
-      UNARY_EXPR, VARIABLE_ACCESS_EXPR),
+      EXPR, F_STRING_EXPR, INCLUSIVE_OR_EXPR, INIT_LIST_EXPR,
+      LOGICAL_AND_EXPR, LOGICAL_OR_EXPR, MULTIPLY_EXPR, PARENTHESIZED_EXPR,
+      POSTFIX_EXPR, PRIMARY_EXPR, RELATIONAL_EXPR, SHIFT_EXPR,
+      STRING_CONCAT_EXPR, UNARY_EXPR, VARIABLE_ACCESS_EXPR),
   };
 
   /* ********************************************************** */
@@ -288,7 +288,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
   //                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
   //                                | PLUSPLUS | MINUSMINUS | MINUS | EXCL | AT | TILDE | LPAREN
-  //                                | NUMBER_LITERAL | STRING_LITERAL | BOOL_LITERAL | NULLPTR_KW
+  //                                | NUMBER_LITERAL | STRING_LITERAL | FSTRING_START | BOOL_LITERAL | NULLPTR_KW
   //                                | IDENTIFIER | COMMENT
   //                                | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>)
   static boolean BlockItem_recover(PsiBuilder b, int l) {
@@ -307,7 +307,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
   //                                | FLOAT_KW | DOUBLE_KW | BOOL_KW | AUTO_KW | AUTO
   //                                | PLUSPLUS | MINUSMINUS | MINUS | EXCL | AT | TILDE | LPAREN
-  //                                | NUMBER_LITERAL | STRING_LITERAL | BOOL_LITERAL | NULLPTR_KW
+  //                                | NUMBER_LITERAL | STRING_LITERAL | FSTRING_START | BOOL_LITERAL | NULLPTR_KW
   //                                | IDENTIFIER | COMMENT
   //                                | PP_IF | PP_ELIF | PP_ELSE | PP_ENDIF | PP_DEFINE | <<eof>>
   private static boolean BlockItem_recover_0(PsiBuilder b, int l) {
@@ -352,6 +352,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, LPAREN);
     if (!r) r = consumeToken(b, NUMBER_LITERAL);
     if (!r) r = consumeToken(b, STRING_LITERAL);
+    if (!r) r = consumeToken(b, FSTRING_START);
     if (!r) r = consumeToken(b, BOOL_LITERAL);
     if (!r) r = consumeToken(b, NULLPTR_KW);
     if (!r) r = consumeToken(b, IDENTIFIER);
@@ -887,6 +888,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   //                       | TypedefDecl
   //                       | ClassDecl
   //                       | StructDecl
+  //                       | InterfaceDecl
   //                       | EventDecl
   //                       | DelegateDecl
   //                       | MixinDecl
@@ -902,6 +904,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = TypedefDecl(b, l + 1);
     if (!r) r = ClassDecl(b, l + 1);
     if (!r) r = StructDecl(b, l + 1);
+    if (!r) r = InterfaceDecl(b, l + 1);
     if (!r) r = EventDecl(b, l + 1);
     if (!r) r = DelegateDecl(b, l + 1);
     if (!r) r = MixinDecl(b, l + 1);
@@ -1247,6 +1250,84 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     r = r && consumeToken(b, SEMICOLON);
     exit_section_(b, l, m, r, false, null);
     return r;
+  }
+
+  /* ********************************************************** */
+  // FSTRING_START fstring_content* FSTRING_END
+  public static boolean FStringExpr(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "FStringExpr")) return false;
+    if (!nextTokenIs(b, FSTRING_START)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, F_STRING_EXPR, null);
+    r = consumeToken(b, FSTRING_START);
+    p = r; // pin = 1
+    r = r && report_error_(b, FStringExpr_1(b, l + 1));
+    r = p && consumeToken(b, FSTRING_END) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // fstring_content*
+  private static boolean FStringExpr_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "FStringExpr_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!fstring_content(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "FStringExpr_1", c)) break;
+    }
+    return true;
+  }
+
+  /* ********************************************************** */
+  // FSTRING_COLON FSTRING_FORMAT_TEXT?
+  public static boolean FStringFormatSpec(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "FStringFormatSpec")) return false;
+    if (!nextTokenIs(b, FSTRING_COLON)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, F_STRING_FORMAT_SPEC, null);
+    r = consumeToken(b, FSTRING_COLON);
+    p = r; // pin = 1
+    r = r && FStringFormatSpec_1(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // FSTRING_FORMAT_TEXT?
+  private static boolean FStringFormatSpec_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "FStringFormatSpec_1")) return false;
+    consumeToken(b, FSTRING_FORMAT_TEXT);
+    return true;
+  }
+
+  /* ********************************************************** */
+  // FSTRING_LBRACE Expr EQ? FStringFormatSpec? FSTRING_RBRACE
+  public static boolean FStringInterp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "FStringInterp")) return false;
+    if (!nextTokenIs(b, FSTRING_LBRACE)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, F_STRING_INTERP, null);
+    r = consumeToken(b, FSTRING_LBRACE);
+    p = r; // pin = 1
+    r = r && report_error_(b, Expr(b, l + 1));
+    r = p && report_error_(b, FStringInterp_2(b, l + 1)) && r;
+    r = p && report_error_(b, FStringInterp_3(b, l + 1)) && r;
+    r = p && consumeToken(b, FSTRING_RBRACE) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // EQ?
+  private static boolean FStringInterp_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "FStringInterp_2")) return false;
+    consumeToken(b, EQ);
+    return true;
+  }
+
+  // FStringFormatSpec?
+  private static boolean FStringInterp_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "FStringInterp_3")) return false;
+    FStringFormatSpec(b, l + 1);
+    return true;
   }
 
   /* ********************************************************** */
@@ -1782,6 +1863,57 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // UInterfaceDecl? INTERFACE_KW identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
+  public static boolean InterfaceDecl(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl")) return false;
+    if (!nextTokenIs(b, "<interface decl>", INTERFACE_KW, UINTERFACE_KW)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, INTERFACE_DECL, "<interface decl>");
+    r = InterfaceDecl_0(b, l + 1);
+    r = r && consumeToken(b, INTERFACE_KW);
+    r = r && identifier(b, l + 1);
+    r = r && InterfaceDecl_3(b, l + 1);
+    r = r && consumeToken(b, LBRACE);
+    r = r && InterfaceDecl_5(b, l + 1);
+    r = r && consumeToken(b, RBRACE);
+    r = r && InterfaceDecl_7(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // UInterfaceDecl?
+  private static boolean InterfaceDecl_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_0")) return false;
+    UInterfaceDecl(b, l + 1);
+    return true;
+  }
+
+  // InheritanceList?
+  private static boolean InterfaceDecl_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_3")) return false;
+    InheritanceList(b, l + 1);
+    return true;
+  }
+
+  // ClassMember_with_recover*
+  private static boolean InterfaceDecl_5(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_5")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!ClassMember_with_recover(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "InterfaceDecl_5", c)) break;
+    }
+    return true;
+  }
+
+  // SEMICOLON?
+  private static boolean InterfaceDecl_7(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_7")) return false;
+    consumeToken(b, SEMICOLON);
+    return true;
+  }
+
+  /* ********************************************************** */
   // IfDefBlock
   //                | Declaration
   //                | Statement
@@ -2153,8 +2285,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // !(RBRACE | CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // !(RBRACE | CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                   | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                   | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                   | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2169,8 +2301,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // RBRACE | CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // RBRACE | CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                   | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                   | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                   | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2184,6 +2316,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, CLASS);
     if (!r) r = consumeToken(b, STRUCT);
     if (!r) r = consumeToken(b, ENUM);
+    if (!r) r = consumeToken(b, INTERFACE_KW);
     if (!r) r = consumeToken(b, EVENT_KW);
     if (!r) r = consumeToken(b, DELEGATE_KW);
     if (!r) r = consumeToken(b, MIXIN_KW);
@@ -2192,6 +2325,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, UCLASS_KW);
     if (!r) r = consumeToken(b, USTRUCT_KW);
     if (!r) r = consumeToken(b, UENUM_KW);
+    if (!r) r = consumeToken(b, UINTERFACE_KW);
     if (!r) r = consumeToken(b, UFUNCTION_KW);
     if (!r) r = consumeToken(b, UPROPERTY_KW);
     if (!r) r = consumeToken(b, DEFAULT_KW);
@@ -2550,6 +2684,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   // VariableAccessExpr
   //               | InitListExpr
   //               | StringConcatExpr
+  //               | FStringExpr
   //               | number_literal
   //               | string_literal
   //               | bool_literal
@@ -2562,6 +2697,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     r = VariableAccessExpr(b, l + 1);
     if (!r) r = InitListExpr(b, l + 1);
     if (!r) r = StringConcatExpr(b, l + 1);
+    if (!r) r = FStringExpr(b, l + 1);
     if (!r) r = number_literal(b, l + 1);
     if (!r) r = string_literal(b, l + 1);
     if (!r) r = bool_literal(b, l + 1);
@@ -2780,8 +2916,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // !(CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // !(CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2796,8 +2932,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2810,6 +2946,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, CLASS);
     if (!r) r = consumeToken(b, STRUCT);
     if (!r) r = consumeToken(b, ENUM);
+    if (!r) r = consumeToken(b, INTERFACE_KW);
     if (!r) r = consumeToken(b, EVENT_KW);
     if (!r) r = consumeToken(b, DELEGATE_KW);
     if (!r) r = consumeToken(b, MIXIN_KW);
@@ -2818,6 +2955,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, UCLASS_KW);
     if (!r) r = consumeToken(b, USTRUCT_KW);
     if (!r) r = consumeToken(b, UENUM_KW);
+    if (!r) r = consumeToken(b, UINTERFACE_KW);
     if (!r) r = consumeToken(b, UFUNCTION_KW);
     if (!r) r = consumeToken(b, UPROPERTY_KW);
     if (!r) r = consumeToken(b, DEFAULT_KW);
@@ -3259,6 +3397,19 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // UINTERFACE_KW MetaArgList
+  public static boolean UInterfaceDecl(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "UInterfaceDecl")) return false;
+    if (!nextTokenIs(b, UINTERFACE_KW)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, UINTERFACE_KW);
+    r = r && MetaArgList(b, l + 1);
+    exit_section_(b, m, U_INTERFACE_DECL, r);
+    return r;
+  }
+
+  /* ********************************************************** */
   // UPROPERTY_KW MetaArgList
   public static boolean UPropertyDecl(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "UPropertyDecl")) return false;
@@ -3465,6 +3616,17 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   // BOOL_LITERAL
   static boolean bool_literal(PsiBuilder b, int l) {
     return consumeToken(b, BOOL_LITERAL);
+  }
+
+  /* ********************************************************** */
+  // FSTRING_TEXT | FStringInterp
+  static boolean fstring_content(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fstring_content")) return false;
+    if (!nextTokenIs(b, "", FSTRING_LBRACE, FSTRING_TEXT)) return false;
+    boolean r;
+    r = consumeToken(b, FSTRING_TEXT);
+    if (!r) r = FStringInterp(b, l + 1);
+    return r;
   }
 
   /* ********************************************************** */
