@@ -24,12 +24,19 @@ import com.intellij.lexer.Lexer
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.search.FileTypeIndex
+import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.SearchScope
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.SmartPointerManager
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ForkJoinPool
 
 
 class AngelscriptTokenType(debugName: String) : IElementType(debugName, AngelscriptLanguage.INSTANCE) {
@@ -84,6 +91,12 @@ abstract class AngelscriptNamedElementImpl(node: ASTNode) : ASTWrapperPsiElement
     }
 
     override fun getTextOffset(): Int = nameIdentifier?.textOffset ?: super.getTextOffset()
+
+    override fun getUseScope(): SearchScope =
+        GlobalSearchScope.getScopeRestrictedByFileTypes(
+            GlobalSearchScope.projectScope(project),
+            AngelscriptFileType.INSTANCE
+        )
 }
 
 // ─── Element factory ─────────────────────────────────────────────────────────
@@ -159,9 +172,10 @@ internal class AngelscriptReference(
         val local = resolveLocally()
         if (local.isNotEmpty()) return local.toTypedArray()
 
-        // Fall back to project-wide global scan
         val project = myElement.project
         val scope = GlobalSearchScope.projectScope(project)
+
+        // AngelScript-wide global scan
         val results = mutableListOf<ResolveResult>()
         val allFiles = FileTypeIndex.getFiles(AngelscriptFileType.INSTANCE, scope)
         for (vFile in allFiles) {
@@ -170,7 +184,73 @@ internal class AngelscriptReference(
                 collectDeclarations(psiFile, name, results)
             } catch (e: Exception) {}
         }
-        return results.toTypedArray()
+        if (results.isNotEmpty()) return results.toTypedArray()
+
+        // Fall back to C++ header search (only if enabled in settings)
+        val settings = AngelscriptSettings.getInstance()
+        if (settings.cppHeaderResolutionEnabled) {
+            return resolveCpp(project, scope, settings).toTypedArray()
+        }
+        return emptyArray()
+    }
+
+    /** Searches C++ header files in parallel for a declaration matching [name]. Results are cached by name+patterns. */
+    private fun resolveCpp(project: Project, scope: GlobalSearchScope, settings: AngelscriptSettings): List<ResolveResult> {
+        val key = AngelscriptCppCache.CacheKey(
+            name            = name,
+            functionPattern = settings.cppFunctionPattern,
+            classPattern    = settings.cppClassPattern,
+            enumPattern     = settings.cppEnumPattern,
+        )
+        val cppCache = AngelscriptCppCache.getInstance(project)
+
+        // Cache hit: return live pointers, or empty list for a cached "not found"
+        val cached = cppCache.get(key)
+        if (cached != null) {
+            val live = cached.mapNotNull { it.element?.takeIf { e -> e.isValid } }
+            if (cached.isEmpty() || live.isNotEmpty()) return live.map { PsiElementResolveResult(it) }
+            cppCache.clear() // all pointers died (files deleted) — fall through to re-scan
+        }
+
+        // Cache miss: compile patterns and scan
+        fun tryCompile(template: String): Regex? = try { settings.compileCppPattern(template, name) } catch (_: Exception) { null }
+        val functionPattern = tryCompile(settings.cppFunctionPattern)
+        val classPattern    = tryCompile(settings.cppClassPattern)
+        val enumPattern     = tryCompile(settings.cppEnumPattern)
+        if (functionPattern == null && classPattern == null && enumPattern == null) return emptyList()
+
+        val headerFiles = (FilenameIndex.getAllFilesByExt(project, "h", scope) +
+                           FilenameIndex.getAllFilesByExt(project, "hpp", scope))
+
+        if (headerFiles.isEmpty()) return emptyList()
+
+        val elements = ConcurrentLinkedQueue<PsiElement>()
+
+        // Use the common ForkJoinPool for parallel file scanning
+        ForkJoinPool.commonPool().submit {
+            headerFiles.toList().parallelStream().forEach { vFile ->
+                try {
+                    ApplicationManager.getApplication().runReadAction {
+                        val psiFile = PsiManager.getInstance(project).findFile(vFile)
+                            ?: return@runReadAction
+                        val text = psiFile.text
+                        val match = functionPattern?.find(text)
+                            ?: classPattern?.find(text)
+                            ?: enumPattern?.find(text)
+                            ?: return@runReadAction
+                        val nameOffset = match.value.lastIndexOf(name)
+                        val leaf = psiFile.findElementAt(match.range.first + nameOffset)
+                        if (leaf != null) elements.add(leaf)
+                    }
+                } catch (_: Exception) {}
+            }
+        }.get() // block until all parallel tasks finish
+
+        // Store in cache (empty list caches "not found" to avoid repeat scans)
+        val pointers = elements.map { SmartPointerManager.getInstance(project).createSmartPsiElementPointer(it) }
+        cppCache.put(key, pointers)
+
+        return elements.map { PsiElementResolveResult(it) }
     }
 
     private fun resolveLocally(): List<ResolveResult> {

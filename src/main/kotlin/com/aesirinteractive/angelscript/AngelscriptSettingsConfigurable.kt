@@ -1,13 +1,20 @@
 package com.aesirinteractive.angelscript
 
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
+import java.awt.Color
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.UIManager
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 
 class AngelscriptSettingsConfigurable : Configurable {
 
@@ -25,6 +32,13 @@ class AngelscriptSettingsConfigurable : Configurable {
     private val reconnectDelayField = JBTextField()
     private val logDebugMessagesCheckBox = JBCheckBox("Log debug protocol messages to console")
     private val focusRiderWhenBreakingCheckBox = JBCheckBox("Focus Rider when hitting a breakpoint in angelscript")
+    private val cppHeaderResolutionCheckBox = JBCheckBox("Experimental: Resolve AngelScript symbols in C++ header files (.h/.hpp)")
+    private val cppFunctionPatternField = JBTextField()
+    private val cppFunctionPatternError = JBLabel().also { it.foreground = JBColor.RED; it.isVisible = false }
+    private val cppClassPatternField = JBTextField()
+    private val cppClassPatternError = JBLabel().also { it.foreground = JBColor.RED; it.isVisible = false }
+    private val cppEnumPatternField = JBTextField()
+    private val cppEnumPatternError = JBLabel().also { it.foreground = JBColor.RED; it.isVisible = false }
     private val clangFormatPathKindCombo = ComboBox(ClangFormatPathKind.entries.toTypedArray())
     private val clangFormatPathLabel = JBLabel("clang-format path:")
     private val clangFormatPathField = JBTextField()
@@ -50,8 +64,20 @@ class AngelscriptSettingsConfigurable : Configurable {
             .addLabeledComponent(JBLabel("Reconnect delay (ms):"), reconnectDelayField, 1, false)
             .addComponent(logDebugMessagesCheckBox, 1)
             .addComponent(focusRiderWhenBreakingCheckBox, 1)
+            .addSeparator()
+            .addComponent(cppHeaderResolutionCheckBox, 1)
+            .addLabeledComponent(JBLabel("Function pattern (use NAME as placeholder):"), cppFunctionPatternField, 1, false)
+            .addComponent(cppFunctionPatternError, 1)
+            .addLabeledComponent(JBLabel("Class/struct pattern:"), cppClassPatternField, 1, false)
+            .addComponent(cppClassPatternError, 1)
+            .addLabeledComponent(JBLabel("Enum pattern:"), cppEnumPatternField, 1, false)
+            .addComponent(cppEnumPatternError, 1)
             .addComponentFillVertically(JPanel(), 0)
             .panel
+
+        attachRegexValidator(cppFunctionPatternField, cppFunctionPatternError)
+        attachRegexValidator(cppClassPatternField, cppClassPatternError)
+        attachRegexValidator(cppEnumPatternField, cppEnumPatternError)
 
         lspPathKindCombo.addActionListener { updateLspPathVisibility() }
         updateLspPathVisibility()
@@ -61,6 +87,29 @@ class AngelscriptSettingsConfigurable : Configurable {
 
         return panel!!
     }
+
+    /** Validates [field] as a regex template on every keystroke, showing errors in [errorLabel]. */
+    private fun attachRegexValidator(field: JBTextField, errorLabel: JBLabel) {
+        val defaultBackground = field.background
+        fun validate() {
+            val error = validateRegexTemplate(field.text)
+            val isValid = error == null
+            field.background = if (isValid) defaultBackground else UIManager.getColor("TextField.errorBackground") ?: Color(100, 50, 50)
+            errorLabel.text = error ?: ""
+            errorLabel.isVisible = !isValid
+            panel?.revalidate()
+        }
+        field.document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent) = validate()
+            override fun removeUpdate(e: DocumentEvent) = validate()
+            override fun changedUpdate(e: DocumentEvent) = validate()
+        })
+    }
+
+    /** Returns an error message if [template] is not a valid regex (with NAME substituted), or null if valid. */
+    private fun validateRegexTemplate(template: String): String? =
+        try { Regex(template.replace("NAME", "X")); null }
+        catch (e: Exception) { e.message }
 
     private fun updateClangFormatPathVisibility() {
         val isCustom = clangFormatPathKindCombo.selectedItem == ClangFormatPathKind.Custom
@@ -100,9 +149,20 @@ class AngelscriptSettingsConfigurable : Configurable {
             || reconnectDelayField.text.toLongOrNull() != settings.debugReconnectDelayMs
             || logDebugMessagesCheckBox.isSelected != settings.logDebugMessages
             || focusRiderWhenBreakingCheckBox.isSelected != settings.focusRiderWhenBreaking
+            || cppHeaderResolutionCheckBox.isSelected != settings.cppHeaderResolutionEnabled
+            || cppFunctionPatternField.text != settings.cppFunctionPattern
+            || cppClassPatternField.text != settings.cppClassPattern
+            || cppEnumPatternField.text != settings.cppEnumPattern
     }
 
     override fun apply() {
+        validateRegexTemplate(cppFunctionPatternField.text)
+            ?.let { throw ConfigurationException("Function pattern: $it") }
+        validateRegexTemplate(cppClassPatternField.text)
+            ?.let { throw ConfigurationException("Class/struct pattern: $it") }
+        validateRegexTemplate(cppEnumPatternField.text)
+            ?.let { throw ConfigurationException("Enum pattern: $it") }
+
         val settings = AngelscriptSettings.getInstance()
         settings.nodePath = nodePathField.text
         settings.lspPath = lspPathField.text
@@ -119,6 +179,11 @@ class AngelscriptSettingsConfigurable : Configurable {
         settings.debugReconnectDelayMs = reconnectDelayField.text.toLongOrNull()?.coerceAtLeast(100L) ?: 2000L
         settings.logDebugMessages = logDebugMessagesCheckBox.isSelected
         settings.focusRiderWhenBreaking = focusRiderWhenBreakingCheckBox.isSelected
+        settings.cppHeaderResolutionEnabled = cppHeaderResolutionCheckBox.isSelected
+        settings.cppFunctionPattern = cppFunctionPatternField.text
+        settings.cppClassPattern = cppClassPatternField.text
+        settings.cppEnumPattern = cppEnumPatternField.text
+        ProjectManager.getInstance().openProjects.forEach { AngelscriptCppCache.getInstance(it).clear() }
     }
 
     override fun reset() {
@@ -137,6 +202,10 @@ class AngelscriptSettingsConfigurable : Configurable {
         reconnectDelayField.text = settings.debugReconnectDelayMs.toString()
         logDebugMessagesCheckBox.isSelected = settings.logDebugMessages
         focusRiderWhenBreakingCheckBox.isSelected = settings.focusRiderWhenBreaking
+        cppHeaderResolutionCheckBox.isSelected = settings.cppHeaderResolutionEnabled
+        cppFunctionPatternField.text = settings.cppFunctionPattern
+        cppClassPatternField.text = settings.cppClassPattern
+        cppEnumPatternField.text = settings.cppEnumPattern
         updateLspPathVisibility()
         updateClangFormatPathVisibility()
     }

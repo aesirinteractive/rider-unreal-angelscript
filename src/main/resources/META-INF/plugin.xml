@@ -24,6 +24,12 @@
     <resource-bundle>messages.MyMessageBundle</resource-bundle>
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <projectListeners>
+        <listener
+            class="com.aesirinteractive.angelscript.AngelscriptCppCacheVfsListener"
+            topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </projectListeners>
+
     <extensions defaultExtensionNs="com.intellij">
 <!--        <toolWindow id="MyToolWindow" factoryClass="com.aesirinteractive.angelscript.MyToolWindowFactory"-->
 <!--                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>-->

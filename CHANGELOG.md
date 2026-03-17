@@ -5,4 +5,5 @@
 - Add option to use specific `.clang-format` file for AngelScript
 - Focus Rider when hitting breakpoints
 - Add support for file structure view (showing all symbols declared in the current file)
-- Add support for renamed local variables and types declared in AngelScript.
+- Add support for renaming local variables and types declared in AngelScript.
+- Add experimental Angelscript to C++ reference resolving so you can go to the definition of a C++ function/class from an AngelScript file. Dynamic script binds are not supported.

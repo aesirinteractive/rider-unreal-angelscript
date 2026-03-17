@@ -28,6 +28,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var clangFormatFile: String = ".clang-format-angelscript",
         var logDebugMessages: Boolean = false,
         var focusRiderWhenBreaking: Boolean = true,
+        var cppHeaderResolutionEnabled: Boolean = false,
+        var cppFunctionPattern: String = """UFUNCTION\(.*?\n.*?NAME\s*\(""",
+        var cppClassPattern: String = """(?m)^\s*(?:class|struct)\s+(?:\w+\s+)?NAME\b(?!\s*;)""",
+        var cppEnumPattern: String = """(?m)^\s*enum(?:\s+class)?\s+NAME\b(?!\s*;)""",
     )
 
     private var state = State()
@@ -93,6 +97,26 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var focusRiderWhenBreaking: Boolean
         get() = state.focusRiderWhenBreaking
         set(value) { state.focusRiderWhenBreaking = value }
+
+    var cppHeaderResolutionEnabled: Boolean
+        get() = state.cppHeaderResolutionEnabled
+        set(value) { state.cppHeaderResolutionEnabled = value }
+
+    var cppFunctionPattern: String
+        get() = state.cppFunctionPattern
+        set(value) { state.cppFunctionPattern = value }
+
+    var cppClassPattern: String
+        get() = state.cppClassPattern
+        set(value) { state.cppClassPattern = value }
+
+    var cppEnumPattern: String
+        get() = state.cppEnumPattern
+        set(value) { state.cppEnumPattern = value }
+
+    /** Converts a pattern template (using NAME as placeholder) to a compiled Regex for [name]. */
+    fun compileCppPattern(template: String, name: String): Regex =
+        Regex(template.replace("NAME", Regex.escape(name)))
 
     fun parsedFileExtensions(): Set<String> =
         fileExtensions.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
