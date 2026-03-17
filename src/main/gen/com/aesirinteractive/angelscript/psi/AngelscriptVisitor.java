@@ -155,6 +155,10 @@ public class AngelscriptVisitor extends PsiElementVisitor {
     visitExpr(o);
   }
 
+  public void visitInterfaceDecl(@NotNull AngelscriptInterfaceDecl o) {
+    visitPsiElement(o);
+  }
+
   public void visitLogicalAndExpr(@NotNull AngelscriptLogicalAndExpr o) {
     visitExpr(o);
   }
@@ -252,6 +256,10 @@ public class AngelscriptVisitor extends PsiElementVisitor {
   }
 
   public void visitUFunctionDecl(@NotNull AngelscriptUFunctionDecl o) {
+    visitPsiElement(o);
+  }
+
+  public void visitUInterfaceDecl(@NotNull AngelscriptUInterfaceDecl o) {
     visitPsiElement(o);
   }
 

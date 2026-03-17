@@ -129,6 +129,7 @@
     STATIC='static'
     STRUCT='struct'
     CLASS='class'
+    INTERFACE_KW='interface'
     SUPER='super'
     TYPEDEF_KW='typedef'
     NAMESPACE_KW='namespace'
@@ -183,6 +184,7 @@
     UCLASS_KW='UCLASS'
     USTRUCT_KW='USTRUCT'
     UENUM_KW='UENUM'
+    UINTERFACE_KW='UINTERFACE'
   ]
 
   extends(".*Expr")=Expr
@@ -194,8 +196,8 @@ private ScriptItem ::= !(<<eof>>) Item {
   pin = 1
   recoverWhile = ScriptItem_recover
 }
-private ScriptItem_recover ::= !(CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-                               | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+private ScriptItem_recover ::= !(CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+                               | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
                                | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -256,8 +258,8 @@ private NamespaceItem_with_recover ::= !(RBRACE | <<eof>>) Item {
   pin = 1
   recoverWhile = NamespaceItem_recover
 }
-private NamespaceItem_recover ::= !(RBRACE | CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-                                  | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+private NamespaceItem_recover ::= !(RBRACE | CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+                                  | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
                                   | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
                                   | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
                                   | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -273,6 +275,7 @@ private Declaration ::= NamespaceDecl
                       | TypedefDecl
                       | ClassDecl
                       | StructDecl
+                      | InterfaceDecl
                       | EventDecl
                       | DelegateDecl
                       | MixinDecl
@@ -287,6 +290,7 @@ TypedefDecl ::= TYPEDEF_KW PrimitiveType identifier SEMICOLON
 
 ClassDecl ::= UClassDecl? CLASS identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
 StructDecl ::= UStructDecl? STRUCT identifier LBRACE StructMember_with_recover* RBRACE SEMICOLON?
+InterfaceDecl ::= UInterfaceDecl? INTERFACE_KW identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
 
 private ClassMember_with_recover ::= !(RBRACE | <<eof>>) ClassMember {
   pin = 1
@@ -319,6 +323,7 @@ UPropertyDecl ::= UPROPERTY_KW MetaArgList
 UClassDecl    ::= UCLASS_KW    MetaArgList
 UStructDecl   ::= USTRUCT_KW   MetaArgList
 UEnumDecl     ::= UENUM_KW     MetaArgList
+UInterfaceDecl ::= UINTERFACE_KW MetaArgList
 
 private MetaArgList ::= LPAREN [ MetaArg (COMMA MetaArg)* COMMA? ] RPAREN
 private MetaArg ::= identifier (EQ MetaArgValue)?

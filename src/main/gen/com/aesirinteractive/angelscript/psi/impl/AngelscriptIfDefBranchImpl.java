@@ -77,6 +77,12 @@ public class AngelscriptIfDefBranchImpl extends ASTWrapperPsiElement implements 
 
   @Override
   @NotNull
+  public List<AngelscriptInterfaceDecl> getInterfaceDeclList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptInterfaceDecl.class);
+  }
+
+  @Override
+  @NotNull
   public List<AngelscriptMixinDecl> getMixinDeclList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, AngelscriptMixinDecl.class);
   }

@@ -888,6 +888,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   //                       | TypedefDecl
   //                       | ClassDecl
   //                       | StructDecl
+  //                       | InterfaceDecl
   //                       | EventDecl
   //                       | DelegateDecl
   //                       | MixinDecl
@@ -903,6 +904,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = TypedefDecl(b, l + 1);
     if (!r) r = ClassDecl(b, l + 1);
     if (!r) r = StructDecl(b, l + 1);
+    if (!r) r = InterfaceDecl(b, l + 1);
     if (!r) r = EventDecl(b, l + 1);
     if (!r) r = DelegateDecl(b, l + 1);
     if (!r) r = MixinDecl(b, l + 1);
@@ -1861,6 +1863,57 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // UInterfaceDecl? INTERFACE_KW identifier InheritanceList? LBRACE ClassMember_with_recover* RBRACE SEMICOLON?
+  public static boolean InterfaceDecl(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl")) return false;
+    if (!nextTokenIs(b, "<interface decl>", INTERFACE_KW, UINTERFACE_KW)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, INTERFACE_DECL, "<interface decl>");
+    r = InterfaceDecl_0(b, l + 1);
+    r = r && consumeToken(b, INTERFACE_KW);
+    r = r && identifier(b, l + 1);
+    r = r && InterfaceDecl_3(b, l + 1);
+    r = r && consumeToken(b, LBRACE);
+    r = r && InterfaceDecl_5(b, l + 1);
+    r = r && consumeToken(b, RBRACE);
+    r = r && InterfaceDecl_7(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // UInterfaceDecl?
+  private static boolean InterfaceDecl_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_0")) return false;
+    UInterfaceDecl(b, l + 1);
+    return true;
+  }
+
+  // InheritanceList?
+  private static boolean InterfaceDecl_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_3")) return false;
+    InheritanceList(b, l + 1);
+    return true;
+  }
+
+  // ClassMember_with_recover*
+  private static boolean InterfaceDecl_5(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_5")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!ClassMember_with_recover(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "InterfaceDecl_5", c)) break;
+    }
+    return true;
+  }
+
+  // SEMICOLON?
+  private static boolean InterfaceDecl_7(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "InterfaceDecl_7")) return false;
+    consumeToken(b, SEMICOLON);
+    return true;
+  }
+
+  /* ********************************************************** */
   // IfDefBlock
   //                | Declaration
   //                | Statement
@@ -2232,8 +2285,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // !(RBRACE | CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // !(RBRACE | CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                   | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                   | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                   | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2248,8 +2301,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // RBRACE | CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // RBRACE | CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                   | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                   | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                   | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                   | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2263,6 +2316,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, CLASS);
     if (!r) r = consumeToken(b, STRUCT);
     if (!r) r = consumeToken(b, ENUM);
+    if (!r) r = consumeToken(b, INTERFACE_KW);
     if (!r) r = consumeToken(b, EVENT_KW);
     if (!r) r = consumeToken(b, DELEGATE_KW);
     if (!r) r = consumeToken(b, MIXIN_KW);
@@ -2271,6 +2325,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, UCLASS_KW);
     if (!r) r = consumeToken(b, USTRUCT_KW);
     if (!r) r = consumeToken(b, UENUM_KW);
+    if (!r) r = consumeToken(b, UINTERFACE_KW);
     if (!r) r = consumeToken(b, UFUNCTION_KW);
     if (!r) r = consumeToken(b, UPROPERTY_KW);
     if (!r) r = consumeToken(b, DEFAULT_KW);
@@ -2861,8 +2916,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // !(CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // !(CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2877,8 +2932,8 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     return r;
   }
 
-  // CLASS | STRUCT | ENUM | EVENT_KW | DELEGATE_KW | MIXIN_KW
-  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UFUNCTION_KW | UPROPERTY_KW
+  // CLASS | STRUCT | ENUM | INTERFACE_KW | EVENT_KW | DELEGATE_KW | MIXIN_KW
+  //                                | TYPEDEF_KW | NAMESPACE_KW | UCLASS_KW | USTRUCT_KW | UENUM_KW | UINTERFACE_KW | UFUNCTION_KW | UPROPERTY_KW
   //                                | DEFAULT_KW | IDENTIFIER | CONST | VOID_KW
   //                                | INT_KW | INT8_KW | INT16_KW | INT32_KW | INT64_KW
   //                                | UINT_KW | UINT8_KW | UINT16_KW | UINT32_KW | UINT64_KW
@@ -2891,6 +2946,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, CLASS);
     if (!r) r = consumeToken(b, STRUCT);
     if (!r) r = consumeToken(b, ENUM);
+    if (!r) r = consumeToken(b, INTERFACE_KW);
     if (!r) r = consumeToken(b, EVENT_KW);
     if (!r) r = consumeToken(b, DELEGATE_KW);
     if (!r) r = consumeToken(b, MIXIN_KW);
@@ -2899,6 +2955,7 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, UCLASS_KW);
     if (!r) r = consumeToken(b, USTRUCT_KW);
     if (!r) r = consumeToken(b, UENUM_KW);
+    if (!r) r = consumeToken(b, UINTERFACE_KW);
     if (!r) r = consumeToken(b, UFUNCTION_KW);
     if (!r) r = consumeToken(b, UPROPERTY_KW);
     if (!r) r = consumeToken(b, DEFAULT_KW);
@@ -3336,6 +3393,19 @@ public class AngelscriptParser implements PsiParser, LightPsiParser {
     r = consumeToken(b, UFUNCTION_KW);
     r = r && MetaArgList(b, l + 1);
     exit_section_(b, m, U_FUNCTION_DECL, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // UINTERFACE_KW MetaArgList
+  public static boolean UInterfaceDecl(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "UInterfaceDecl")) return false;
+    if (!nextTokenIs(b, UINTERFACE_KW)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, UINTERFACE_KW);
+    r = r && MetaArgList(b, l + 1);
+    exit_section_(b, m, U_INTERFACE_DECL, r);
     return r;
   }
 

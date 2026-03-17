@@ -45,6 +45,7 @@ public interface AngelscriptTypes {
   IElementType IF_STATEMENT = new AngelscriptElementType("IF_STATEMENT");
   IElementType INCLUSIVE_OR_EXPR = new AngelscriptElementType("INCLUSIVE_OR_EXPR");
   IElementType INIT_LIST_EXPR = new AngelscriptElementType("INIT_LIST_EXPR");
+  IElementType INTERFACE_DECL = new AngelscriptElementType("INTERFACE_DECL");
   IElementType LOGICAL_AND_EXPR = new AngelscriptElementType("LOGICAL_AND_EXPR");
   IElementType LOGICAL_OR_EXPR = new AngelscriptElementType("LOGICAL_OR_EXPR");
   IElementType MIXIN_DECL = new AngelscriptElementType("MIXIN_DECL");
@@ -71,6 +72,7 @@ public interface AngelscriptTypes {
   IElementType U_CLASS_DECL = new AngelscriptElementType("U_CLASS_DECL");
   IElementType U_ENUM_DECL = new AngelscriptElementType("U_ENUM_DECL");
   IElementType U_FUNCTION_DECL = new AngelscriptElementType("U_FUNCTION_DECL");
+  IElementType U_INTERFACE_DECL = new AngelscriptElementType("U_INTERFACE_DECL");
   IElementType U_PROPERTY_DECL = new AngelscriptElementType("U_PROPERTY_DECL");
   IElementType U_STRUCT_DECL = new AngelscriptElementType("U_STRUCT_DECL");
   IElementType VARIABLE_ACCESS_EXPR = new AngelscriptElementType("VARIABLE_ACCESS_EXPR");
@@ -130,6 +132,7 @@ public interface AngelscriptTypes {
   IElementType INT32_KW = new AngelscriptTokenType("int32");
   IElementType INT64_KW = new AngelscriptTokenType("int64");
   IElementType INT8_KW = new AngelscriptTokenType("int8");
+  IElementType INTERFACE_KW = new AngelscriptTokenType("interface");
   IElementType INT_KW = new AngelscriptTokenType("int");
   IElementType IS_KW = new AngelscriptTokenType("is");
   IElementType LBRACE = new AngelscriptTokenType("{");
@@ -195,6 +198,7 @@ public interface AngelscriptTypes {
   IElementType UINT32_KW = new AngelscriptTokenType("uint32");
   IElementType UINT64_KW = new AngelscriptTokenType("uint64");
   IElementType UINT8_KW = new AngelscriptTokenType("uint8");
+  IElementType UINTERFACE_KW = new AngelscriptTokenType("UINTERFACE");
   IElementType UINT_KW = new AngelscriptTokenType("uint");
   IElementType UPROPERTY_KW = new AngelscriptTokenType("UPROPERTY");
   IElementType USTRUCT_KW = new AngelscriptTokenType("USTRUCT");
@@ -315,6 +319,9 @@ public interface AngelscriptTypes {
       else if (type == INIT_LIST_EXPR) {
         return new AngelscriptInitListExprImpl(node);
       }
+      else if (type == INTERFACE_DECL) {
+        return new AngelscriptInterfaceDeclImpl(node);
+      }
       else if (type == LOGICAL_AND_EXPR) {
         return new AngelscriptLogicalAndExprImpl(node);
       }
@@ -392,6 +399,9 @@ public interface AngelscriptTypes {
       }
       else if (type == U_FUNCTION_DECL) {
         return new AngelscriptUFunctionDeclImpl(node);
+      }
+      else if (type == U_INTERFACE_DECL) {
+        return new AngelscriptUInterfaceDeclImpl(node);
       }
       else if (type == U_PROPERTY_DECL) {
         return new AngelscriptUPropertyDeclImpl(node);

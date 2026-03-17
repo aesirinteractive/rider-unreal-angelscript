@@ -131,6 +131,8 @@ class AngelscriptSyntaxHighlighter : SyntaxHighlighterBase() {
             AngelscriptTypes.UCLASS_KW to uniqueKey("UCLASS_KW", DefaultLanguageHighlighterColors.METADATA),
             AngelscriptTypes.USTRUCT_KW to uniqueKey("USTRUCT_KW", DefaultLanguageHighlighterColors.METADATA),
             AngelscriptTypes.UENUM_KW to uniqueKey("UENUM_KW", DefaultLanguageHighlighterColors.METADATA),
+            AngelscriptTypes.UINTERFACE_KW to uniqueKey("UINTERFACE_KW", DefaultLanguageHighlighterColors.METADATA),
+            AngelscriptTypes.INTERFACE_KW to uniqueKey("INTERFACE_KW", DefaultLanguageHighlighterColors.KEYWORD),
             AngelscriptTypes.EQ to uniqueKey("EQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.EQEQ to uniqueKey("EQEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),
             AngelscriptTypes.EXCLEQ to uniqueKey("EXCLEQ", DefaultLanguageHighlighterColors.OPERATION_SIGN),

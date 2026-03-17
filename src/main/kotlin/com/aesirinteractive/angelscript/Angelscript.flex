@@ -203,11 +203,13 @@ RAW_PREFIX       = [A-Za-z_][A-Za-z0-9_]*
 	"explicit"                      { return AngelscriptTypes.EXPLICIT_KW; }
 	"property"                      { return AngelscriptTypes.PROPERTY_KW; }
 	"inout"                         { return AngelscriptTypes.INOUT_KW; }
+	"interface"                     { return AngelscriptTypes.INTERFACE_KW; }
 	"UFUNCTION"                     { return AngelscriptTypes.UFUNCTION_KW; }
 	"UPROPERTY"                     { return AngelscriptTypes.UPROPERTY_KW; }
 	"UCLASS"                        { return AngelscriptTypes.UCLASS_KW; }
 	"USTRUCT"                       { return AngelscriptTypes.USTRUCT_KW; }
 	"UENUM"                         { return AngelscriptTypes.UENUM_KW; }
+	"UINTERFACE"                    { return AngelscriptTypes.UINTERFACE_KW; }
 	"break"                         { return AngelscriptTypes.BREAK; }
 	"const"                         { return AngelscriptTypes.CONST; }
 	"continue"                      { return AngelscriptTypes.CONTINUE; }
