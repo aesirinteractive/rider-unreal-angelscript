@@ -82,7 +82,7 @@ class AngelscriptExternalFormatter : ExternalFormatProcessor {
         val clangFormatPath = resolveClangFormat() ?: return null
         val filename = vf.path
 
-        val xmlOutput = runClangFormat(clangFormatPath, filename, content) ?: return null
+        val xmlOutput = runClangFormat(clangFormatPath, filename, content, project.basePath) ?: return null
         val replacements = parseReplacements(xmlOutput).filter { (offset, length, text) ->
             allowEdit(content, offset, offset + length, text)
         }
@@ -315,11 +315,24 @@ class AngelscriptExternalFormatter : ExternalFormatProcessor {
             .createNotification("clang-format error", content, NotificationType.ERROR)
             .notify(null)
 
-    private fun runClangFormat(executable: String, filename: String, content: String): String? {
-        return try {
-            val process = ProcessBuilder(executable, "--output-replacements-xml", "--assume-filename=$filename")
-                .redirectErrorStream(false)
-                .start()
+    private fun runClangFormat(executable: String, filename: String, content: String, projectBasePath: String?): String? {
+        try {
+            val settings = AngelscriptSettings.getInstance()
+            val rawClangFormatFile = settings.clangFormatFile
+            val clangFormatFile = if (rawClangFormatFile.isNotBlank() && !Path.of(rawClangFormatFile).isAbsolute && projectBasePath != null) {
+                Path.of(projectBasePath, rawClangFormatFile).toString()
+            } else {
+                rawClangFormatFile
+            }
+            val process = if (Files.exists(Path.of(clangFormatFile))) {
+                ProcessBuilder(executable, "--output-replacements-xml", "--assume-filename=$filename", "--style=file:$clangFormatFile")
+                    .redirectErrorStream(false)
+                    .start()
+            } else {
+                ProcessBuilder(executable, "--output-replacements-xml", "--assume-filename=$filename")
+                    .redirectErrorStream(false)
+                    .start()
+            }
 
             process.outputStream.bufferedWriter().use { it.write(content) }
 
@@ -341,11 +354,11 @@ class AngelscriptExternalFormatter : ExternalFormatProcessor {
                 return null
             }
 
-            stdout
+            return stdout
         } catch (e: Exception) {
             LOG.warn("Failed to run clang-format: ${e.message}")
             notifyError("Failed to run clang-format: ${e.message}")
-            null
+            return null
         }
     }
 

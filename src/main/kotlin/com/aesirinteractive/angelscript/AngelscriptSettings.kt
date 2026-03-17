@@ -25,6 +25,7 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
         var debugReconnectDelayMs: Long = 10000L,
         var clangFormatPathKind: ClangFormatPathKind = ClangFormatPathKind.Bundled,
         var clangFormatPath: String = "",
+        var clangFormatFile: String = ".clang-format-angelscript",
         var logDebugMessages: Boolean = false
     )
 
@@ -79,6 +80,10 @@ class AngelscriptSettings : PersistentStateComponent<AngelscriptSettings.State> 
     var clangFormatPath: String
         get() = state.clangFormatPath
         set(value) { state.clangFormatPath = value }
+
+    var clangFormatFile: String
+        get() = state.clangFormatFile
+        set(value) { state.clangFormatFile = value }
 
     var logDebugMessages: Boolean
         get() = state.logDebugMessages

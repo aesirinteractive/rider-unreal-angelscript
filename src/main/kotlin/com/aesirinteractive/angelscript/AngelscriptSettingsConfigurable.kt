@@ -27,6 +27,7 @@ class AngelscriptSettingsConfigurable : Configurable {
     private val clangFormatPathKindCombo = ComboBox(ClangFormatPathKind.entries.toTypedArray())
     private val clangFormatPathLabel = JBLabel("clang-format path:")
     private val clangFormatPathField = JBTextField()
+    private val clangFormatFileField = JBTextField()
     private var panel: JPanel? = null
 
     override fun getDisplayName() = "AngelScript"
@@ -40,6 +41,7 @@ class AngelscriptSettingsConfigurable : Configurable {
             .addLabeledComponent(JBLabel("File extensions (comma-separated):"), fileExtensionsField, 1, false)
             .addLabeledComponent(JBLabel("clang-format source:"), clangFormatPathKindCombo, 1, false)
             .addLabeledComponent(clangFormatPathLabel, clangFormatPathField, 1, false)
+            .addLabeledComponent(JBLabel("clang-format file:"), clangFormatFileField, 1, false)
             .addSeparator()
             .addLabeledComponent(JBLabel("Debug server host:"), debugHostField, 1, false)
             .addLabeledComponent(JBLabel("Debug server port:"), debugPortField, 1, false)
@@ -89,6 +91,7 @@ class AngelscriptSettingsConfigurable : Configurable {
             || fileExtensionsField.text != settings.fileExtensions
             || clangFormatPathKindCombo.selectedItem != settings.clangFormatPathKind
             || clangFormatPathField.text != settings.clangFormatPath
+            || clangFormatFileField.text != settings.clangFormatFile
             || debugHostField.text != settings.debugHost
             || debugPortField.text != settings.debugPort.toString()
             || autoReconnectCheckBox.isSelected != settings.autoReconnectDebugger
@@ -105,6 +108,7 @@ class AngelscriptSettingsConfigurable : Configurable {
         settings.fileExtensions = fileExtensionsField.text
         settings.clangFormatPathKind = clangFormatPathKindCombo.selectedItem as ClangFormatPathKind
         settings.clangFormatPath = clangFormatPathField.text
+        settings.clangFormatFile = clangFormatFileField.text
         AngelscriptExternalFormatter.clearClangFormatCache()
         settings.debugHost = debugHostField.text
         settings.debugPort = debugPortField.text.toIntOrNull() ?: 27099
@@ -122,6 +126,7 @@ class AngelscriptSettingsConfigurable : Configurable {
         fileExtensionsField.text = settings.fileExtensions
         clangFormatPathKindCombo.selectedItem = settings.clangFormatPathKind
         clangFormatPathField.text = settings.clangFormatPath
+        clangFormatFileField.text = settings.clangFormatFile
         debugHostField.text = settings.debugHost
         debugPortField.text = settings.debugPort.toString()
         autoReconnectCheckBox.isSelected = settings.autoReconnectDebugger
